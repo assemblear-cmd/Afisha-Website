@@ -1,7 +1,8 @@
+import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { Container, LinkButton } from '@/components/ui';
 import { SearchBar } from '@/components/events/SearchBar';
-import { CategoryFilter } from '@/components/events/CategoryFilter';
+import { CategoryCircles } from '@/components/events/CategoryCircles';
 import { EventGrid } from '@/components/events/EventGrid';
 
 export const dynamic = 'force-dynamic';
@@ -19,37 +20,59 @@ export default async function HomePage() {
 
   return (
     <main>
-      {/* HERO */}
-      <section className="bg-gradient-to-br from-ink to-[#3a1d63] text-white py-16 sm:py-20">
+      {/* HERO BANNER */}
+      <section className="pt-6">
         <Container>
-          <div className="max-w-2xl">
-            <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight">
-              Find your next experience
-            </h1>
-            <p className="mt-4 text-white/70 text-lg sm:text-xl">
-              Browse thousands of events — concerts, workshops, food festivals and more.
-            </p>
-          </div>
+          <div className="relative h-[360px] overflow-hidden rounded-2xl sm:h-[440px]">
+            {/* Free placeholder image; dark overlay keeps the promo legible */}
+            <img
+              src="https://picsum.photos/seed/afisha-live-stage/1600/700"
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/20" />
 
-          {/* Search bar — slightly overlapping next section via negative margin */}
-          <div className="mt-8 max-w-4xl">
-            <SearchBar />
+            <div className="relative z-10 flex h-full max-w-2xl flex-col justify-center px-6 sm:px-12">
+              <span className="w-fit rounded bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-sm">
+                Find your scene
+              </span>
+              <h1 className="mt-4 text-3xl font-extrabold uppercase leading-[1.05] text-white sm:text-5xl">
+                From{' '}
+                <span className="box-decoration-clone bg-coral px-2 text-white">rooftop sets</span>{' '}
+                to{' '}
+                <span className="box-decoration-clone bg-coral px-2 text-white">sold-out nights</span>
+              </h1>
+              <Link
+                href="/events?category=music"
+                className="mt-7 inline-flex w-fit items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-ink no-underline shadow-lg transition hover:bg-surface"
+              >
+                Explore live music
+                <span aria-hidden>→</span>
+              </Link>
+            </div>
           </div>
         </Container>
       </section>
 
-      {/* CATEGORY ROW */}
-      <section className="py-10 border-b border-ink/5">
+      {/* MOBILE SEARCH — the header search is desktop-only */}
+      <section className="mt-6 lg:hidden">
         <Container>
-          <h2 className="text-lg font-semibold text-ink mb-4">Browse by category</h2>
-          <CategoryFilter />
+          <SearchBar />
         </Container>
       </section>
 
-      {/* FEATURED EVENTS */}
+      {/* CATEGORY CIRCLES */}
+      <section className="py-10">
+        <Container>
+          <h2 className="mb-5 text-lg font-semibold text-ink">Browse by category</h2>
+          <CategoryCircles />
+        </Container>
+      </section>
+
+      {/* UPCOMING EVENTS */}
       <section className="py-12 bg-surface">
         <Container>
-          <div className="flex items-center justify-between mb-6">
+          <div className="mb-6 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-ink">Upcoming events</h2>
             <LinkButton href="/events" variant="ghost" size="sm">
               See all →
