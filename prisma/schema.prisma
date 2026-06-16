@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  // role: "visitor" | "organizer"
+  role         String   @default("visitor")
+  createdAt    DateTime @default(now())
+  events       Event[]
+  orders       Order[]
+}
+
+model Event {
+  id          String       @id @default(cuid())
+  title       String
+  description String
+  category    String
+  venue       String
+  city        String
+  address     String
+  startsAt    DateTime
+  endsAt      DateTime
+  coverImage  String
+  isPublished Boolean      @default(true)
+  organizer   User         @relation(fields: [organizerId], references: [id])
+  organizerId String
+  ticketTypes TicketType[]
+  orders      Order[]
+  createdAt   DateTime     @default(now())
+}
+
+model TicketType {
+  id         String      @id @default(cuid())
+  name       String
+  priceCents Int
+  quantity   Int
+  sold       Int         @default(0)
+  event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId    String
+  orderItems OrderItem[]
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  buyerName  String
+  buyerEmail String
+  totalCents Int
+  // status: "paid"
+  status     String      @default("paid")
+  event      Event       @relation(fields: [eventId], references: [id])
+  eventId    String
+  user       User?       @relation(fields: [userId], references: [id])
+  userId     String?
+  items      OrderItem[]
+  createdAt  DateTime    @default(now())
+}
+
+model OrderItem {
+  id             String     @id @default(cuid())
+  order          Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId        String
+  ticketType     TicketType @relation(fields: [ticketTypeId], references: [id])
+  ticketTypeId   String
+  quantity       Int
+  unitPriceCents Int
+}
