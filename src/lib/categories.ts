@@ -1,16 +1,15 @@
 export type Category = { slug: string; label: string; emoji: string };
 
+// Category set mirrors the reference landing page (with "Lectures" in place of "Dating").
 export const CATEGORIES: Category[] = [
   { slug: 'music', label: 'Music', emoji: '🎵' },
+  { slug: 'nightlife', label: 'Nightlife', emoji: '🪩' },
+  { slug: 'performing-visual-arts', label: 'Performing & Visual Arts', emoji: '🎭' },
+  { slug: 'holidays', label: 'Holidays', emoji: '🎉' },
+  { slug: 'lectures', label: 'Lectures', emoji: '🎓' },
+  { slug: 'hobbies', label: 'Hobbies', emoji: '🎮' },
   { slug: 'business', label: 'Business', emoji: '💼' },
   { slug: 'food-drink', label: 'Food & Drink', emoji: '🍴' },
-  { slug: 'arts', label: 'Arts', emoji: '🎨' },
-  { slug: 'tech', label: 'Tech', emoji: '💻' },
-  { slug: 'sports', label: 'Sports', emoji: '🏆' },
-  { slug: 'health', label: 'Health', emoji: '🧘' },
-  { slug: 'community', label: 'Community', emoji: '🤝' },
-  { slug: 'film', label: 'Film & Media', emoji: '🎬' },
-  { slug: 'fashion', label: 'Fashion', emoji: '👗' },
 ];
 
 export function categoryLabel(slug: string): string {

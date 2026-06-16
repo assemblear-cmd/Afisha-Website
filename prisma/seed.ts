@@ -83,7 +83,7 @@ const events: EventSeed[] = [
     title: 'Modern Canvas: Contemporary Art Walk',
     description:
       'Stroll through a one-night pop-up featuring twenty emerging painters and sculptors. Meet the artists, watch live demonstrations, and vote for the audience prize. A relaxed, gallery-style evening with wine and ambient sound.',
-    category: 'arts',
+    category: 'performing-visual-arts',
     venue: 'Pioneer Square Galleries',
     city: 'Seattle',
     address: '300 1st Ave S, Seattle, WA',
@@ -96,7 +96,7 @@ const events: EventSeed[] = [
     title: 'DevConf: The AI Engineering Track',
     description:
       'A practitioner-focused conference on shipping AI features that actually work in production. Sessions cover evals, retrieval, latency, and cost control. Bring a laptop for the hands-on labs in the afternoon.',
-    category: 'tech',
+    category: 'lectures',
     venue: 'McCormick Place',
     city: 'Chicago',
     address: '2301 S King Dr, Chicago, IL',
@@ -112,7 +112,7 @@ const events: EventSeed[] = [
     title: 'City Marathon Eve: 5K Fun Run',
     description:
       'Loosen up the night before the big race with a relaxed, untimed 5K through downtown. Pace groups welcome runners of every level. Finish at the riverside expo for stretching, hydration, and a free finisher band.',
-    category: 'sports',
+    category: 'hobbies',
     venue: 'Riverside Promenade',
     city: 'Los Angeles',
     address: '100 Aliso St, Los Angeles, CA',
@@ -128,7 +128,7 @@ const events: EventSeed[] = [
     title: 'Mindful Mornings: Yoga & Breathwork Retreat',
     description:
       'Start your day with a grounding flow followed by guided breathwork and a short meditation. Suitable for all levels, mats provided. Stay afterward for herbal tea and a gentle community circle.',
-    category: 'health',
+    category: 'hobbies',
     venue: 'Cherry Creek Wellness Studio',
     city: 'Denver',
     address: '250 Detroit St, Denver, CO',
@@ -144,7 +144,7 @@ const events: EventSeed[] = [
     title: 'Neighborhood Build Day & Block Party',
     description:
       'Roll up your sleeves for a morning of community gardening and mural painting, then stick around for the block party. Live DJs, kids activities, and food from local vendors. Everyone is welcome, no experience needed.',
-    category: 'community',
+    category: 'nightlife',
     venue: 'Wynwood Community Park',
     city: 'Miami',
     address: '2700 NW 2nd Ave, Miami, FL',
@@ -157,7 +157,7 @@ const events: EventSeed[] = [
     title: 'Indie Film Festival: Opening Night',
     description:
       'The opening gala of a three-day celebration of independent cinema. Watch the premiere short-film block, then join the directors for a moderated Q&A. A red-carpet reception with sparkling wine follows the screening.',
-    category: 'film',
+    category: 'performing-visual-arts',
     venue: 'Hollywood Theatre',
     city: 'Portland',
     address: '4122 NE Sandy Blvd, Portland, OR',
@@ -173,7 +173,7 @@ const events: EventSeed[] = [
     title: 'Winter Style Lab: Sustainable Fashion Show',
     description:
       'A runway showcase spotlighting independent designers working with recycled and natural materials. Between walks, browse the pop-up market and meet the makers. Proceeds support a local textile-recycling nonprofit.',
-    category: 'fashion',
+    category: 'holidays',
     venue: 'SoWa Power Station',
     city: 'Boston',
     address: '550 Harrison Ave, Boston, MA',
@@ -205,7 +205,7 @@ const events: EventSeed[] = [
     title: 'Product Leaders Workshop: Roadmaps That Ship',
     description:
       'A hands-on, half-day workshop for product managers and founders who want roadmaps the whole team believes in. Work through prioritization frameworks, stakeholder alignment, and outcome metrics. Leave with a template you can use Monday morning.',
-    category: 'business',
+    category: 'lectures',
     venue: 'SoMa Innovation Loft',
     city: 'San Francisco',
     address: '475 Brannan St, San Francisco, CA',
