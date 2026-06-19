@@ -104,6 +104,13 @@ export async function Header() {
               Teatros
             </Link>
 
+            <Link
+              href="/lectures"
+              className="hidden text-sm font-medium text-body no-underline hover:text-coral lg:inline"
+            >
+              Lectures
+            </Link>
+
             {user ? (
               <>
                 {user.role === 'organizer' ? (
