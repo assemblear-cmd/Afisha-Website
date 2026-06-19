@@ -54,6 +54,37 @@ export default async function HomePage() {
         </Container>
       </section>
 
+      {/* CONTENT BLOCKS — entry points into the backend-powered vitrina blocks */}
+      <section className="pt-10">
+        <Container>
+          <h2 className="mb-5 text-lg font-semibold text-ink">Browse by block</h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Link
+              href="/teatros"
+              className="group flex flex-col gap-1 rounded-xl border border-ink/10 bg-white p-5 no-underline transition hover:-translate-y-0.5 hover:border-coral hover:shadow-card"
+            >
+              <span className="text-2xl">🎭</span>
+              <span className="mt-1 font-semibold text-ink group-hover:text-coral">Teatros</span>
+              <span className="text-sm text-muted">Repertorio en vivo</span>
+            </Link>
+            {[
+              { emoji: '🎓', label: 'Lectures' },
+              { emoji: '🍴', label: 'Food' },
+              { emoji: '🎬', label: 'Films' },
+            ].map((b) => (
+              <div
+                key={b.label}
+                className="flex flex-col gap-1 rounded-xl border border-dashed border-ink/10 bg-surface p-5 opacity-70"
+              >
+                <span className="text-2xl grayscale">{b.emoji}</span>
+                <span className="mt-1 font-semibold text-ink">{b.label}</span>
+                <span className="text-sm text-muted">Próximamente</span>
+              </div>
+            ))}
+          </div>
+        </Container>
+      </section>
+
       {/* MOBILE SEARCH — the header search is desktop-only */}
       <section className="mt-6 lg:hidden">
         <Container>
