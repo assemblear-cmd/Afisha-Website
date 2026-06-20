@@ -67,8 +67,15 @@ export default async function HomePage() {
               <span className="mt-1 font-semibold text-ink group-hover:text-coral">Teatros</span>
               <span className="text-sm text-muted">Repertorio en vivo</span>
             </Link>
+            <Link
+              href="/lectures"
+              className="group flex flex-col gap-1 rounded-xl border border-ink/10 bg-white p-5 no-underline transition hover:-translate-y-0.5 hover:border-coral hover:shadow-card"
+            >
+              <span className="text-2xl">🎓</span>
+              <span className="mt-1 font-semibold text-ink group-hover:text-coral">Lectures</span>
+              <span className="text-sm text-muted">Talks &amp; conferences</span>
+            </Link>
             {[
-              { emoji: '🎓', label: 'Lectures' },
               { emoji: '🍴', label: 'Food' },
               { emoji: '🎬', label: 'Films' },
             ].map((b) => (
