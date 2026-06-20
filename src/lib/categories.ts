@@ -16,3 +16,8 @@ export function categoryLabel(slug: string): string {
   const found = CATEGORIES.find((c) => c.slug === slug);
   return found ? found.label : slug;
 }
+
+export function categoryEmoji(slug: string): string {
+  const found = CATEGORIES.find((c) => c.slug === slug);
+  return found ? found.emoji : '🎟️';
+}

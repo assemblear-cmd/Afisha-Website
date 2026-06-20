@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Afisha — El Eventbrite chileno</title>
+
+<!-- Fonts: Archivo Black (display) + Space Grotesk (body) — bold, distinctive,
+     pairs with the Afisha coral/ink brand instead of generic Inter-on-white. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+
+<style>
+/* ===========================================
+   VIEWPORT FITTING: MANDATORY BASE STYLES
+   (from frontend-slides STYLE_PRESETS.md)
+   =========================================== */
+html, body { height: 100%; overflow-x: hidden; }
+html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+
+.slide {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.slide-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-height: 100%;
+    overflow: hidden;
+    padding: var(--slide-padding);
+}
+
+:root {
+    --title-size: clamp(1.5rem, 5vw, 4rem);
+    --h2-size: clamp(1.25rem, 3.5vw, 2.5rem);
+    --h3-size: clamp(1rem, 2.5vw, 1.75rem);
+    --body-size: clamp(0.75rem, 1.5vw, 1.125rem);
+    --small-size: clamp(0.65rem, 1vw, 0.875rem);
+
+    --slide-padding: clamp(1rem, 4vw, 4rem);
+    --content-gap: clamp(0.5rem, 2vw, 2rem);
+    --element-gap: clamp(0.25rem, 1vw, 1rem);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+    gap: clamp(0.5rem, 1.5vw, 1rem);
+}
+
+img, .image-container { max-width: 100%; max-height: min(50vh, 400px); object-fit: contain; }
+
+@media (max-height: 700px) {
+    :root {
+        --slide-padding: clamp(0.75rem, 3vw, 2rem);
+        --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+        --title-size: clamp(1.25rem, 4.5vw, 2.5rem);
+        --h2-size: clamp(1rem, 3vw, 1.75rem);
+    }
+}
+@media (max-height: 600px) {
+    :root {
+        --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+        --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+        --title-size: clamp(1.1rem, 4vw, 2rem);
+        --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
+    }
+    .nav-dots, .keyboard-hint, .decorative { display: none; }
+}
+@media (max-height: 500px) {
+    :root {
+        --slide-padding: clamp(0.4rem, 2vw, 1rem);
+        --title-size: clamp(1rem, 3.5vw, 1.5rem);
+        --h2-size: clamp(0.9rem, 2.5vw, 1.25rem);
+        --body-size: clamp(0.65rem, 1vw, 0.85rem);
+    }
+}
+@media (max-width: 600px) {
+    :root { --title-size: clamp(1.25rem, 7vw, 2.5rem); }
+    .grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+    html { scroll-behavior: auto; }
+}
+
+/* ===========================================
+   AFISHA THEME  (Bold Signal × brand tokens)
+   =========================================== */
+:root {
+    --ink:      #1E0A3C;
+    --ink-2:    #2A0E4F;
+    --coral:    #F05537;
+    --coral-dk: #D9442A;
+    --ivory:    #F8F7FA;
+    --muted:    #A99FC4;
+    --line:     rgba(255,255,255,0.10);
+    /* secondary accents — keep the palette multi-dimensional, not one-note coral */
+    --teal:   #3EB489;
+    --violet: #6D5BD0;
+    --amber:  #F2A03D;
+    --sky:    #2D9CDB;
+    --rose:   #E0517E;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--ivory);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Atmospheric field: deep ink + coral glow + faint grid (abstract, no images) */
+.slide::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(60vw 60vw at 78% 18%, rgba(240,85,55,0.20), transparent 60%),
+        radial-gradient(50vw 50vw at 10% 95%, rgba(109,91,208,0.16), transparent 60%),
+        linear-gradient(180deg, var(--ink) 0%, var(--ink-2) 100%);
+    z-index: 0;
+}
+.slide::after { /* subtle grid overlay */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: clamp(40px, 6vw, 88px) clamp(40px, 6vw, 88px);
+    mask-image: radial-gradient(120vw 120vh at 50% 50%, black, transparent 75%);
+    z-index: 0;
+    opacity: 0.5;
+}
+.slide-content { position: relative; z-index: 1; gap: var(--content-gap); }
+
+h1, h2, h3 { font-family: 'Archivo Black', system-ui, sans-serif; font-weight: 900; margin: 0; line-height: 1.02; letter-spacing: -0.01em; }
+h1 { font-size: var(--title-size); }
+h2 { font-size: var(--h2-size); }
+p  { font-size: var(--body-size); line-height: 1.5; color: var(--muted); margin: 0; max-width: 60ch; }
+strong { color: var(--ivory); }
+
+/* Oversized section number — the Bold Signal signature */
+.kicker {
+    display: inline-flex; align-items: baseline; gap: 0.6em;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: var(--small-size); letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--coral);
+}
+.kicker .num {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(2.5rem, 9vw, 6rem); line-height: 0.8;
+    color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,0.22);
+}
+
+.coral { color: var(--coral); }
+.hl { background: var(--coral); color: #fff; padding: 0 0.18em; border-radius: 4px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+
+/* Cards */
+.card {
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,0.035);
+    border-radius: clamp(10px, 1.4vw, 18px);
+    padding: clamp(0.7rem, 1.8vw, 1.4rem);
+    display: flex; flex-direction: column; gap: 0.35rem;
+    backdrop-filter: blur(2px);
+}
+.card .ico { font-size: clamp(1.4rem, 3vw, 2.1rem); line-height: 1; }
+.card h3 { font-size: var(--h3-size); }
+.card p  { font-size: var(--small-size); }
+.card.focal { background: var(--coral); border-color: var(--coral); }
+.card.focal h3, .card.focal p, .card.focal .tag { color: #fff; }
+.card .tag { font-size: var(--small-size); font-weight: 700; color: var(--coral); letter-spacing: 0.06em; }
+.card.live  { border-color: rgba(62,180,137,0.5); }
+.card.live .tag { color: var(--teal); }
+.card.soon { opacity: 0.62; }
+
+.lead { font-size: clamp(0.95rem, 2.1vw, 1.45rem); color: var(--ivory); max-width: 32ch; }
+
+/* Bullet list */
+.bullets { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: clamp(0.4rem, 1.4vh, 1rem); max-width: 56ch; }
+.bullets li { position: relative; padding-left: 1.6em; font-size: var(--body-size); color: var(--ivory); line-height: 1.4; }
+.bullets li::before { content: ""; position: absolute; left: 0; top: 0.5em; width: 0.7em; height: 0.7em; background: var(--coral); border-radius: 2px; }
+.bullets li span { color: var(--muted); }
+
+/* Flow diagram */
+.flow { display: flex; align-items: center; gap: clamp(0.4rem, 1.4vw, 1.1rem); flex-wrap: wrap; }
+.node { border: 1px solid var(--line); background: rgba(255,255,255,0.04); border-radius: 12px; padding: clamp(0.6rem,1.5vw,1.1rem) clamp(0.7rem,1.8vw,1.4rem); min-width: clamp(110px, 16vw, 200px); }
+.node .t { font-family: 'Archivo Black'; font-size: var(--h3-size); }
+.node .s { font-size: var(--small-size); color: var(--muted); }
+.node.accent { border-color: var(--coral); box-shadow: 0 0 0 1px var(--coral) inset; }
+.arrow { color: var(--coral); font-size: clamp(1.2rem, 3vw, 2rem); font-weight: 700; }
+
+/* Color chips for the cover system */
+.chips { display: flex; gap: clamp(0.35rem,1vw,0.7rem); flex-wrap: wrap; }
+.chip { width: clamp(54px, 9vw, 96px); height: clamp(42px, 7vw, 72px); border-radius: 10px; display: grid; place-items: center; font-size: clamp(1.1rem,2.4vw,1.7rem); color: rgba(255,255,255,0.85); }
+
+/* Stats row */
+.stats { display: flex; gap: clamp(1rem, 4vw, 3.5rem); flex-wrap: wrap; }
+.stat .v { font-family: 'Archivo Black'; font-size: clamp(1.8rem, 5vw, 3.4rem); color: var(--coral); line-height: 1; }
+.stat .l { font-size: var(--small-size); color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; }
+
+.tech { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.pill { border: 1px solid var(--line); border-radius: 999px; padding: 0.35em 0.9em; font-size: var(--small-size); font-weight: 500; color: var(--ivory); background: rgba(255,255,255,0.04); }
+
+.eyebrow { font-size: var(--small-size); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+
+/* Wordmark (matches the site header treatment) */
+.wordmark { font-family: 'Archivo Black'; font-size: clamp(3rem, 13vw, 9rem); letter-spacing: -0.03em; line-height: 0.9; }
+
+/* ============ Reveal animation ============ */
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.6s cubic-bezier(.2,.7,.2,1), transform 0.6s cubic-bezier(.2,.7,.2,1); transition-delay: calc(var(--i, 0) * 90ms); }
+.slide.is-active .reveal { opacity: 1; transform: none; }
+
+/* ============ Chrome: progress, dots, counter, hint ============ */
+.progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--coral); width: 0; z-index: 50; transition: width 0.3s ease; }
+.nav-dots { position: fixed; right: clamp(10px, 2vw, 26px); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; z-index: 50; }
+.nav-dots button { width: 9px; height: 9px; border-radius: 50%; border: 0; padding: 0; background: rgba(255,255,255,0.28); cursor: pointer; transition: background 0.25s, transform 0.25s; }
+.nav-dots button:hover { background: rgba(255,255,255,0.6); }
+.nav-dots button[aria-current="true"] { background: var(--coral); transform: scale(1.5); }
+.counter { position: fixed; left: clamp(12px, 2.5vw, 32px); bottom: clamp(12px, 2.5vw, 28px); z-index: 50; font-size: var(--small-size); color: var(--muted); font-variant-numeric: tabular-nums; }
+.counter b { color: var(--ivory); font-family: 'Archivo Black'; }
+.keyboard-hint { position: fixed; right: clamp(12px, 2.5vw, 32px); bottom: clamp(12px, 2.5vw, 28px); z-index: 50; font-size: var(--small-size); color: var(--muted); }
+.keyboard-hint kbd { border: 1px solid var(--line); border-radius: 5px; padding: 0.1em 0.45em; font-family: inherit; color: var(--ivory); }
+:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<main>
+
+    <!-- 1 · TITLE -->
+    <section class="slide" aria-label="Portada">
+        <div class="slide-content" style="justify-content:center;">
+            <div class="eyebrow reveal" style="--i:0;">Agregador de eventos · Chile</div>
+            <h1 class="wordmark reveal" style="--i:1;">Afish<span class="coral">a</span><span class="coral">.</span></h1>
+            <p class="lead reveal" style="--i:2; margin-top:0.4rem;">El <strong>Eventbrite chileno</strong>: una sola ventana para descubrir, filtrar y comprar entradas a todo lo que pasa en Chile.</p>
+            <div class="eyebrow reveal" style="--i:3; color:var(--coral); margin-top:0.6rem;">Diseño de producto · Afisha Website</div>
+        </div>
+    </section>
+
+    <!-- 2 · PROBLEM -->
+    <section class="slide" aria-label="El problema">
+        <div class="slide-content">
+            <span class="kicker reveal" style="--i:0;"><span class="num">01</span> El problema</span>
+            <h2 class="reveal" style="--i:1; max-width:18ch;">La cartelera de Chile está <span class="hl">fragmentada</span>.</h2>
+            <ul class="bullets reveal" style="--i:2;">
+                <li>Teatros, música, charlas y gastronomía viven en <span>decenas de sitios distintos</span>.</li>
+                <li>Cada venue publica a su manera — <span>sin fechas, precios ni formato comunes</span>.</li>
+                <li>El público se pierde eventos; <span>los organizadores, audiencia</span>.</li>
+                <li>No existe un <span>punto único de descubrimiento</span> para el país.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 3 · SOLUTION -->
+    <section class="slide" aria-label="La solución">
+        <div class="slide-content">
+            <span class="kicker reveal" style="--i:0;"><span class="num">02</span> La solución</span>
+            <h2 class="reveal" style="--i:1; max-width:20ch;">Una vitrina, <span class="coral">todos los eventos</span>.</h2>
+            <p class="lead reveal" style="--i:2;">Afisha recolecta, ordena y muestra los eventos chilenos en una experiencia única — del descubrimiento a la compra.</p>
+            <div class="grid reveal" style="--i:3; margin-top:0.4rem;">
+                <div class="card"><span class="ico">🔎</span><h3>Descubrir</h3><p>Buscar por ciudad, categoría o fecha.</p></div>
+                <div class="card focal"><span class="ico">🎟️</span><h3>Comprar</h3><p>Selección de entradas y checkout en sitio.</p></div>
+                <div class="card"><span class="ico">📣</span><h3>Publicar</h3><p>Los organizadores crean y gestionan eventos.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4 · ARCHITECTURE -->
+    <section class="slide" aria-label="Cómo funciona">
+        <div class="slide-content">
+            <span class="kicker reveal" style="--i:0;"><span class="num">03</span> Cómo funciona</span>
+            <h2 class="reveal" style="--i:1;">Backend que recolecta, <span class="coral">vitrina</span> que muestra.</h2>
+            <div class="flow reveal" style="--i:2; margin-top:0.6rem;">
+                <div class="node"><div class="t">Fuentes</div><div class="s">Venues · tickets · IG · iCal</div></div>
+                <span class="arrow">→</span>
+                <div class="node"><div class="t">Backend Afisha</div><div class="s">Recolecta · ordena · almacena</div></div>
+                <span class="arrow">→</span>
+                <div class="node accent"><div class="t">Vitrina Afisha</div><div class="s">Next.js · este repo</div></div>
+            </div>
+            <p class="reveal" style="--i:3; margin-top:0.8rem;">La información de los eventos chilenos se sirve desde el backend del repositorio <strong>Afisha</strong>; este sitio es la capa de presentación.</p>
+        </div>
+    </section>
+
+    <!-- 5 · BLOCK MODEL -->
+    <section class="slide" aria-label="Modelo por bloques">
+        <div class="slide-content">
+            <span class="kicker reveal" style="--i:0;"><span class="num">04</span> Bloque por bloque</span>
+            <h2 class="reveal" style="--i:1;">Crecemos <span class="coral">una categoría a la vez</span>.</h2>
+            <div class="grid reveal" style="--i:2; margin-top:0.4rem;">
+                <div class="card live"><span class="ico">🎭</span><h3>Teatros</h3><span class="tag">● EN VIVO</span><p>Repertorio agrupado por sala.</p></div>
+                <div class="card soon"><span class="ico">🎓</span><h3>Charlas</h3><span class="tag">Próximamente</span><p>Lectures &amp; conferencias.</p></div>
+                <div class="card soon"><span class="ico">🍴</span><h3>Gastronomía</h3><span class="tag">Próximamente</span><p>Food &amp; drink.</p></div>
+                <div class="card soon"><span class="ico">🎬</span><h3>Cine</h3><span class="tag">Próximamente</span><p>Estrenos y funciones.</p></div>
+                <div class="card soon"><span class="ico">🎵</span><h3>Música</h3><span class="tag">Próximamente</span><p>Conciertos y nightlife.</p></div>
+                <div class="card soon"><span class="ico">＋</span><h3>Más</h3><span class="tag">Roadmap</span><p>13 categorías en total.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6 · DESIGN DIRECTION -->
+    <section class="slide" aria-label="Dirección de diseño">
+        <div class="slide-content">
+            <span class="kicker reveal" style="--i:0;"><span class="num">05</span> Dirección de diseño</span>
+            <h2 class="reveal" style="--i:1;">Editorial para descubrir, <span class="coral">sobrio</span> para operar.</h2>
+            <div class="grid reveal" style="--i:2; margin-top:0.4rem;">
+                <div class="card"><span class="ico" style="color:var(--coral);">◆</span><h3>Marca decidida</h3><p>Coral <strong>#F05537</strong> como único color de acción, sobre tinta <strong>#1E0A3C</strong>.</p></div>
+                <div class="card"><span class="ico">𝐀</span><h3>Jerarquía clara</h3><p>Tipografía que escala con la pantalla; escaneo rápido para uso diario.</p></div>
+                <div class="card"><span class="ico">📐</span><h3>Sistema reutilizable</h3><p>Tokens + primitivas <span style="color:var(--muted)">Card · Field · Button</span> coherentes en todos los estados.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 7 · COVER SYSTEM -->
+    <section class="slide" aria-label="Sistema de portadas">
+        <div class="slide-content">
+            <span class="kicker reveal" style="--i:0;"><span class="num">06</span> Sistema de portadas</span>
+            <h2 class="reveal" style="--i:1; max-width:22ch;">Cada evento, una portada <span class="coral">distinta y estable</span>.</h2>
+            <p class="reveal" style="--i:2;">Sin imagen, antes todo era un mismo degradado. Ahora un <strong>seed determinista</strong> elige un dúo de color de marca y un emoji de categoría — la grilla se vuelve escaneable.</p>
+            <div class="chips reveal" style="--i:3; margin-top:0.4rem;">
+                <div class="chip" style="background:linear-gradient(135deg,#F05537,#2A0E4F);">🎭</div>
+                <div class="chip" style="background:linear-gradient(135deg,#3EB489,#10403B);">🎵</div>
+                <div class="chip" style="background:linear-gradient(135deg,#6D5BD0,#241046);">🎓</div>
+                <div class="chip" style="background:linear-gradient(135deg,#F2A03D,#9E2F22);">🍴</div>
+                <div class="chip" style="background:linear-gradient(135deg,#2D9CDB,#16324F);">🎬</div>
+                <div class="chip" style="background:linear-gradient(135deg,#E0517E,#3A1136);">🪩</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 8 · ACCESSIBILITY -->
+    <section class="slide" aria-label="Accesibilidad">
+        <div class="slide-content">
+            <span class="kicker reveal" style="--i:0;"><span class="num">07</span> Accesibilidad</span>
+            <h2 class="reveal" style="--i:1;">Inclusivo <span class="coral">por construcción</span>.</h2>
+            <ul class="bullets reveal" style="--i:2;">
+                <li>Formularios con <span>label ↔ control conectados</span> automáticamente.</li>
+                <li>Errores anunciados a lectores de pantalla — <span>aria-describedby · aria-invalid · role="alert"</span>.</li>
+                <li>Foco visible y navegación <span>completa por teclado</span>.</li>
+                <li>Contraste e imágenes con <span>texto alternativo correcto</span>.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 9 · TECH STACK -->
+    <section class="slide" aria-label="Stack técnico">
+        <div class="slide-content">
+            <span class="kicker reveal" style="--i:0;"><span class="num">08</span> Stack técnico</span>
+            <h2 class="reveal" style="--i:1;">Moderno, <span class="coral">rápido</span>, mantenible.</h2>
+            <div class="tech reveal" style="--i:2; margin-top:0.3rem;">
+                <span class="pill">Next.js 14 · App Router</span>
+                <span class="pill">React Server Components</span>
+                <span class="pill">Prisma</span>
+                <span class="pill">TypeScript</span>
+                <span class="pill">Tailwind CSS</span>
+                <span class="pill">Vitest</span>
+                <span class="pill">Playwright</span>
+            </div>
+            <p class="reveal" style="--i:3; margin-top:0.8rem;">Las páginas son <strong>Server Components</strong> que renderizan en el servidor — la vitrina lee los datos y entrega HTML listo, sin SPA pesada.</p>
+        </div>
+    </section>
+
+    <!-- 10 · STATUS -->
+    <section class="slide" aria-label="Estado y roadmap">
+        <div class="slide-content">
+            <span class="kicker reveal" style="--i:0;"><span class="num">09</span> Estado</span>
+            <h2 class="reveal" style="--i:1;">Vivo hoy, <span class="coral">creciendo</span>.</h2>
+            <div class="stats reveal" style="--i:2; margin-top:0.4rem;">
+                <div class="stat"><div class="v">1</div><div class="l">Bloque en vivo · Teatros</div></div>
+                <div class="stat"><div class="v">13</div><div class="l">Categorías objetivo</div></div>
+                <div class="stat"><div class="v">🇨🇱</div><div class="l">Foco · Santiago de Chile</div></div>
+            </div>
+            <p class="reveal" style="--i:3; margin-top:0.8rem;">Próximo: conectar el siguiente bloque de contenido y enriquecer la identidad por venue.</p>
+        </div>
+    </section>
+
+    <!-- 11 · CLOSE -->
+    <section class="slide" aria-label="Cierre">
+        <div class="slide-content" style="justify-content:center;">
+            <h1 class="reveal" style="--i:0; max-width:16ch;">Descubre lo que <span class="hl">pasa en Chile</span>.</h1>
+            <p class="lead reveal" style="--i:1; margin-top:0.5rem;">Afisha — el agregador de eventos chileno.</p>
+            <div class="eyebrow reveal" style="--i:2; color:var(--coral); margin-top:0.8rem;">expresscarwash.cl</div>
+        </div>
+    </section>
+
+</main>
+
+<!-- Chrome -->
+<nav class="nav-dots" id="dots" aria-label="Navegación de diapositivas"></nav>
+<div class="counter" aria-hidden="true"><b id="cur">01</b> / <span id="total">11</span></div>
+<div class="keyboard-hint decorative" aria-hidden="true"><kbd>↑</kbd> <kbd>↓</kbd> navegar</div>
+
+<script>
+/* ---------------------------------------------------------------
+   Presentation controller — zero dependency.
+   Navigation: native scroll-snap (wheel/trackpad) + keyboard + touch + dots.
+   State + reveal animations driven by IntersectionObserver.
+   --------------------------------------------------------------- */
+(function () {
+    const slides  = Array.from(document.querySelectorAll('.slide'));
+    const dotsBox = document.getElementById('dots');
+    const progress = document.getElementById('progress');
+    const curEl   = document.getElementById('cur');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let index = 0;
+
+    document.getElementById('total').textContent = String(slides.length).padStart(2, '0');
+
+    // Build nav dots
+    slides.forEach((s, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.setAttribute('aria-label', 'Ir a la diapositiva ' + (i + 1));
+        b.addEventListener('click', () => go(i));
+        dotsBox.appendChild(b);
+    });
+    const dots = Array.from(dotsBox.children);
+
+    function setActive(i) {
+        index = i;
+        slides.forEach((s, n) => s.classList.toggle('is-active', n === i));
+        dots.forEach((d, n) => d.setAttribute('aria-current', n === i ? 'true' : 'false'));
+        curEl.textContent = String(i + 1).padStart(2, '0');
+        progress.style.width = ((i) / (slides.length - 1) * 100) + '%';
+    }
+
+    function go(i) {
+        i = Math.max(0, Math.min(slides.length - 1, i));
+        slides[i].scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
+        setActive(i); // optimistic; observer confirms
+    }
+
+    // Observe which slide is centered → active state + reveals
+    const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+            if (e.isIntersecting && e.intersectionRatio >= 0.5) {
+                setActive(slides.indexOf(e.target));
+            }
+        });
+    }, { threshold: [0.5, 0.75] });
+    slides.forEach((s) => io.observe(s));
+
+    // Keyboard
+    window.addEventListener('keydown', (e) => {
+        switch (e.key) {
+            case 'ArrowDown': case 'ArrowRight': case 'PageDown': case ' ':
+                e.preventDefault(); go(index + 1); break;
+            case 'ArrowUp': case 'ArrowLeft': case 'PageUp':
+                e.preventDefault(); go(index - 1); break;
+            case 'Home': e.preventDefault(); go(0); break;
+            case 'End':  e.preventDefault(); go(slides.length - 1); break;
+        }
+    });
+
+    // Touch / swipe (vertical)
+    let touchY = null;
+    window.addEventListener('touchstart', (e) => { touchY = e.changedTouches[0].clientY; }, { passive: true });
+    window.addEventListener('touchend', (e) => {
+        if (touchY === null) return;
+        const dy = e.changedTouches[0].clientY - touchY;
+        if (Math.abs(dy) > 45) go(index + (dy < 0 ? 1 : -1));
+        touchY = null;
+    }, { passive: true });
+
+    setActive(0);
+})();
+</script>
+
+</body>
+</html>

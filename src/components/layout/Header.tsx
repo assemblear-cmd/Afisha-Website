@@ -97,6 +97,13 @@ export async function Header() {
               Find events
             </Link>
 
+            <Link
+              href="/teatros"
+              className="hidden text-sm font-medium text-body no-underline hover:text-coral lg:inline"
+            >
+              Teatros
+            </Link>
+
             {user ? (
               <>
                 {user.role === 'organizer' ? (

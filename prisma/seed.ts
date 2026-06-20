@@ -217,6 +217,107 @@ const events: EventSeed[] = [
       { name: 'Free Waitlist Seat', priceCents: 0, quantity: 25, sold: 25 },
     ],
   },
+
+  // --- Teatros de Santiago (repertorio) ---------------------------------
+  // Reuse Event.venue as the theater identity; category 'performing-visual-arts'.
+  // CLP prices are stored as cents (CLP * 100) to match the priceCents convention.
+  {
+    title: 'Don Giovanni — Ópera en dos actos',
+    description:
+      'La obra maestra de Mozart regresa al Municipal con una puesta en escena contemporánea y orquesta en vivo. Funciones con sobretítulos en español.',
+    category: 'performing-visual-arts',
+    venue: 'Teatro Municipal de Santiago',
+    city: 'Santiago',
+    address: 'Agustinas 794, Santiago, Región Metropolitana',
+    ...day(2026, 7, 18, 19, 3),
+    slug: 'teatro-municipal-don-giovanni',
+    organizer: 'a',
+    tickets: [
+      { name: 'Galería', priceCents: 1200000, quantity: 200, sold: 40 },
+      { name: 'Platea', priceCents: 2500000, quantity: 150, sold: 65 },
+    ],
+  },
+  {
+    title: 'El Lago de los Cisnes — Ballet',
+    description:
+      'El clásico de Chaikovski interpretado por el Ballet de Santiago, con la Orquesta Filarmónica en el foso. Una velada imperdible para los amantes de la danza.',
+    category: 'performing-visual-arts',
+    venue: 'Teatro Municipal de Santiago',
+    city: 'Santiago',
+    address: 'Agustinas 794, Santiago, Región Metropolitana',
+    ...day(2026, 8, 9, 20, 3),
+    slug: 'teatro-municipal-lago-cisnes',
+    organizer: 'a',
+    tickets: [
+      { name: 'Galería', priceCents: 1500000, quantity: 200, sold: 80 },
+      { name: 'Platea', priceCents: 4500000, quantity: 120, sold: 33 },
+    ],
+  },
+  {
+    title: 'Concierto de Gala: Verdi',
+    description:
+      'Una selección de las arias y coros más célebres de Giuseppe Verdi en una noche de gala con solistas invitados.',
+    category: 'performing-visual-arts',
+    venue: 'Teatro Municipal de Santiago',
+    city: 'Santiago',
+    address: 'Agustinas 794, Santiago, Región Metropolitana',
+    ...day(2026, 9, 5, 19, 2),
+    slug: 'teatro-municipal-gala-verdi',
+    organizer: 'a',
+    tickets: [{ name: 'Entrada general', priceCents: 1800000, quantity: 300, sold: 90 }],
+  },
+  {
+    title: 'Sinfónica: Beethoven 9',
+    description:
+      'La Novena Sinfonía de Beethoven con coro y orquesta completa. Un cierre de temporada monumental en el Teatro de la Universidad de Chile.',
+    category: 'performing-visual-arts',
+    venue: 'Teatro Universidad de Chile',
+    city: 'Santiago',
+    address: 'Av. Providencia 043, Providencia, Santiago',
+    ...day(2026, 7, 26, 19, 2),
+    slug: 'teatro-uchile-beethoven-9',
+    organizer: 'b',
+    tickets: [{ name: 'Entrada general', priceCents: 1500000, quantity: 400, sold: 120 }],
+  },
+  {
+    title: 'Recital de Piano: Chopin',
+    description:
+      'Un recorrido íntimo por nocturnos, baladas y polonesas de Frédéric Chopin a cargo de un pianista de renombre internacional.',
+    category: 'performing-visual-arts',
+    venue: 'Teatro Universidad de Chile',
+    city: 'Santiago',
+    address: 'Av. Providencia 043, Providencia, Santiago',
+    ...day(2026, 8, 30, 20, 2),
+    slug: 'teatro-uchile-recital-chopin',
+    organizer: 'b',
+    tickets: [{ name: 'Entrada general', priceCents: 1200000, quantity: 400, sold: 75 }],
+  },
+  {
+    title: 'Antígona — Teatro contemporáneo',
+    description:
+      'Una relectura contemporánea de la tragedia de Sófocles montada en el Centro GAM, con dramaturgia chilena y elenco local.',
+    category: 'performing-visual-arts',
+    venue: 'Centro GAM',
+    city: 'Santiago',
+    address: 'Av. Libertador Bernardo O’Higgins 227, Santiago',
+    ...day(2026, 8, 15, 20, 2),
+    slug: 'gam-antigona',
+    organizer: 'b',
+    tickets: [{ name: 'Entrada general', priceCents: 900000, quantity: 250, sold: 60 }],
+  },
+  {
+    title: 'Danza Moderna: Cuerpos en Tránsito',
+    description:
+      'Compañía de danza contemporánea presenta una obra sobre el movimiento urbano y la migración, con música original en vivo.',
+    category: 'performing-visual-arts',
+    venue: 'Centro GAM',
+    city: 'Santiago',
+    address: 'Av. Libertador Bernardo O’Higgins 227, Santiago',
+    ...day(2026, 9, 20, 19, 2),
+    slug: 'gam-cuerpos-en-transito',
+    organizer: 'b',
+    tickets: [{ name: 'Entrada general', priceCents: 1000000, quantity: 250, sold: 48 }],
+  },
 ];
 
 async function main() {
@@ -282,6 +383,65 @@ async function main() {
       },
     });
   }
+
+  // --- Scraped theater aggregator: the 11 source theaters + sample shows ----
+  // Sample shows seed the two reference theaters so the list renders before the
+  // daily scraper has run. Real shows arrive via runScrape() (cron).
+  await prisma.show.deleteMany();
+  await prisma.theater.deleteMany();
+
+  const theaters: { slug: string; name: string; website: string; adapter: string | null }[] = [
+    { slug: 'municipal-santiago', name: 'Teatro Municipal de Santiago', website: 'https://www.municipal.cl', adapter: 'municipal' },
+    { slug: 'municipal-las-condes', name: 'Teatro Municipal de Las Condes', website: 'https://www.tmlascondes.cl', adapter: null },
+    { slug: 'gam', name: 'Centro Cultural Gabriela Mistral (GAM)', website: 'https://www.gam.cl', adapter: 'gam' },
+    { slug: 'teatro-uc', name: 'Teatro UC (Universidad Católica)', website: 'https://www.teatrouc.cl', adapter: null },
+    { slug: 'teatro-del-puente', name: 'Teatro del Puente', website: 'https://www.teatrodelpuente.cl', adapter: null },
+    { slug: 'teatro-mori', name: 'Teatro Mori', website: 'https://www.teatromori.cl', adapter: null },
+    { slug: 'teatro-sidarte', name: 'Teatro Sidarte', website: 'https://www.sidarte.cl', adapter: null },
+    { slug: 'teatro-la-aurora', name: 'Teatro La Aurora', website: 'https://teatrolaaurora.cl', adapter: null },
+    { slug: 'teatro-cupula', name: 'Teatro Cúpula', website: 'https://www.lacupula.cl', adapter: null },
+    { slug: 'teatro-azares', name: 'Teatro Azares', website: 'https://www.teatroazares.cl', adapter: null },
+    { slug: 'teatro-nunoa', name: 'Teatro Municipal de Ñuñoa', website: 'https://www.nunoa.cl/teatro-municipal', adapter: null },
+  ];
+
+  const sampleShows: Record<
+    string,
+    { externalId: string; title: string; startsAt: Date; priceCents: number; sourceUrl: string }[]
+  > = {
+    'municipal-santiago': [
+      { externalId: 'sample-municipal-don-giovanni', title: 'Don Giovanni — Ópera', startsAt: day(2026, 7, 18, 19, 3).startsAt, priceCents: 2500000, sourceUrl: 'https://www.municipal.cl' },
+      { externalId: 'sample-municipal-lago-cisnes', title: 'El Lago de los Cisnes — Ballet', startsAt: day(2026, 8, 9, 20, 3).startsAt, priceCents: 3000000, sourceUrl: 'https://www.municipal.cl' },
+    ],
+    gam: [
+      { externalId: 'sample-gam-antigona', title: 'Antígona — Teatro contemporáneo', startsAt: day(2026, 8, 15, 20, 2).startsAt, priceCents: 900000, sourceUrl: 'https://www.gam.cl' },
+      { externalId: 'sample-gam-danza', title: 'Danza Moderna: Cuerpos en Tránsito', startsAt: day(2026, 9, 20, 19, 2).startsAt, priceCents: 1000000, sourceUrl: 'https://www.gam.cl' },
+    ],
+  };
+
+  for (const t of theaters) {
+    const theater = await prisma.theater.create({
+      data: { slug: t.slug, name: t.name, website: t.website, adapter: t.adapter, city: 'Santiago' },
+    });
+    for (const s of sampleShows[t.slug] ?? []) {
+      await prisma.show.create({
+        data: {
+          theaterId: theater.id,
+          externalId: s.externalId,
+          title: s.title,
+          startsAt: s.startsAt,
+          category: 'teatro',
+          priceCents: s.priceCents,
+          currency: 'CLP',
+          sourceUrl: s.sourceUrl,
+        },
+      });
+    }
+  }
+
+  const theaterCount = await prisma.theater.count();
+  const showCount = await prisma.show.count();
+  console.log(`  Theaters:     ${theaterCount}`);
+  console.log(`  Shows:        ${showCount}`);
 
   const eventCount = await prisma.event.count();
   const ticketCount = await prisma.ticketType.count();

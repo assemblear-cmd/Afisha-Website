@@ -126,7 +126,7 @@ export function CreateEventForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
       {errors.server && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div role="alert" className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           {errors.server}
         </div>
       )}
@@ -246,7 +246,7 @@ export function CreateEventForm() {
         <h2 className="font-semibold text-ink text-lg">Tickets</h2>
 
         {errors.tickets && (
-          <p className="text-sm text-red-600">{errors.tickets}</p>
+          <p role="alert" className="text-sm text-red-600">{errors.tickets}</p>
         )}
 
         <div className="space-y-3">

@@ -70,7 +70,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           <h1 className="mb-6 text-2xl font-bold text-ink">{heading}</h1>
 
           {error && (
-            <div className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 border border-red-200">
+            <div role="alert" className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 border border-red-200">
               {error}
             </div>
           )}

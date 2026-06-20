@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { checkoutSchema } from '@/lib/validations';
+import { ApiError, errorHandler } from '@/lib/api-error';
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -73,55 +74,61 @@ export async function POST(req: NextRequest) {
 
   const currentUser = await getCurrentUser();
 
-  // Run everything in a transaction with a fresh availability re-check to prevent oversell.
-  const order = await prisma.$transaction(async (tx) => {
-    // Re-check availability inside the transaction on fresh rows.
-    const freshTicketTypes = await tx.ticketType.findMany({
-      where: { id: { in: ticketTypeIds }, eventId },
-    });
+  try {
+    // Run everything in a transaction with a fresh availability re-check to prevent oversell.
+    const order = await prisma.$transaction(async (tx) => {
+      // Re-check availability inside the transaction on fresh rows.
+      const freshTicketTypes = await tx.ticketType.findMany({
+        where: { id: { in: ticketTypeIds }, eventId },
+      });
 
-    for (const item of activeItems) {
-      const tt = freshTicketTypes.find((t) => t.id === item.ticketTypeId);
-      if (!tt) throw new Error('Invalid ticket type.');
-      const remaining = tt.quantity - tt.sold;
-      if (item.quantity > remaining) {
-        throw new Error(`"${tt.name}" only has ${remaining} tickets left.`);
+      for (const item of activeItems) {
+        const tt = freshTicketTypes.find((t) => t.id === item.ticketTypeId);
+        // These throws are translated to a clean 400 by errorHandler — e.g. when a
+        // concurrent buyer wins the race between the pre-check and the commit.
+        if (!tt) throw new ApiError(400, 'Invalid ticket type.');
+        const remaining = tt.quantity - tt.sold;
+        if (item.quantity > remaining) {
+          throw new ApiError(400, `"${tt.name}" only has ${remaining} tickets left.`);
+        }
       }
-    }
 
-    const created = await tx.order.create({
-      data: {
-        buyerName,
-        buyerEmail,
-        totalCents,
-        status: 'paid',
-        eventId,
-        userId: currentUser?.id ?? null,
-        items: {
-          create: activeItems.map((item) => {
-            const tt = freshTicketTypes.find((t) => t.id === item.ticketTypeId)!;
-            return {
-              ticketTypeId: item.ticketTypeId,
-              quantity: item.quantity,
-              unitPriceCents: tt.priceCents,
-            };
-          }),
+      const created = await tx.order.create({
+        data: {
+          buyerName,
+          buyerEmail,
+          totalCents,
+          status: 'paid',
+          eventId,
+          userId: currentUser?.id ?? null,
+          items: {
+            create: activeItems.map((item) => {
+              const tt = freshTicketTypes.find((t) => t.id === item.ticketTypeId)!;
+              return {
+                ticketTypeId: item.ticketTypeId,
+                quantity: item.quantity,
+                unitPriceCents: tt.priceCents,
+              };
+            }),
+          },
         },
-      },
+      });
+
+      // Increment sold counts for each ticket type.
+      await Promise.all(
+        activeItems.map((item) =>
+          tx.ticketType.update({
+            where: { id: item.ticketTypeId },
+            data: { sold: { increment: item.quantity } },
+          })
+        )
+      );
+
+      return created;
     });
 
-    // Increment sold counts for each ticket type.
-    await Promise.all(
-      activeItems.map((item) =>
-        tx.ticketType.update({
-          where: { id: item.ticketTypeId },
-          data: { sold: { increment: item.quantity } },
-        })
-      )
-    );
-
-    return created;
-  });
-
-  return NextResponse.json({ orderId: order.id }, { status: 201 });
+    return NextResponse.json({ orderId: order.id }, { status: 201 });
+  } catch (error) {
+    return errorHandler(error);
+  }
 }

@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
-import { Container, Badge, Card } from '@/components/ui';
+import { Container, Badge, Card, CoverPlaceholder } from '@/components/ui';
 import { TicketSelector } from '@/components/events/TicketSelector';
-import { categoryLabel } from '@/lib/categories';
+import { categoryLabel, categoryEmoji } from '@/lib/categories';
 import { formatDateTime } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -49,7 +49,8 @@ export default async function EventPage({ params }: EventPageProps) {
   return (
     <main className="min-h-screen bg-surface pb-16">
       {/* Cover banner */}
-      <div className="relative w-full aspect-[21/9] bg-gradient-to-br from-ink/80 to-coral/60 overflow-hidden">
+      <div className="relative w-full aspect-[21/9] overflow-hidden">
+        <CoverPlaceholder seed={id} glyph={categoryEmoji(category)} />
         {coverImage && (
           <img
             src={coverImage}

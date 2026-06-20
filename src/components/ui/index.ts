@@ -12,6 +12,8 @@ export { Label } from './Label';
 export type { LabelProps } from './Label';
 export { Field } from './Field';
 export type { FieldProps } from './Field';
+export { CoverPlaceholder } from './CoverPlaceholder';
+export type { CoverPlaceholderProps } from './CoverPlaceholder';
 export { Badge } from './Badge';
 export type { BadgeProps, BadgeTone } from './Badge';
 export { Card } from './Card';

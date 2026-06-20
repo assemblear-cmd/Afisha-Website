@@ -1,0 +1,25 @@
+# Local Postgres for development — parity with the Vercel/prod Postgres.
+# Credentials here are throwaway LOCAL-ONLY values; the real prod connection
+# string lives in the Vercel env, never in git. Host port 5433 avoids a
+# conflict with whatever already listens on 5432.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: afisha-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: afisha
+      POSTGRES_PASSWORD: afisha
+      POSTGRES_DB: afisha
+    ports:
+      - '5433:5432'
+    volumes:
+      - afisha-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U afisha -d afisha']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  afisha-pgdata:
