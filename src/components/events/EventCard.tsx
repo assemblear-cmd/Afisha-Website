@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import type { TicketType } from '@prisma/client';
 import type { Event } from '@/types';
-import { Card, Badge } from '@/components/ui';
-import { categoryLabel } from '@/lib/categories';
+import { Card, Badge, CoverPlaceholder } from '@/components/ui';
+import { categoryLabel, categoryEmoji } from '@/lib/categories';
 import { formatDate, formatTime, formatPrice } from '@/lib/format';
 
 interface EventCardProps {
@@ -22,7 +22,7 @@ export function EventCard({ event }: EventCardProps) {
       <Card className="h-full flex flex-col transition-transform duration-200 group-hover:-translate-y-1">
         {/* Cover image */}
         <div className="aspect-[16/9] w-full overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-ink/80 to-coral/60" />
+          <CoverPlaceholder seed={id} glyph={categoryEmoji(category)} />
           {coverImage && (
             <img
               src={coverImage}

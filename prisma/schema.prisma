@@ -73,3 +73,55 @@ model OrderItem {
   quantity       Int
   unitPriceCents Int
 }
+
+// --- Scraped theater repertoire (the daily-updated aggregator) --------------
+// A Theater is a source site we scan; its Shows are the repertoire entries
+// pulled from that site. This is separate from the user-generated Event model
+// above (which powers the ticketing MVP).
+
+model Theater {
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  name          String
+  website       String
+  city          String    @default("Santiago")
+  // Scraper adapter key (e.g. "municipal", "gam"); null = no adapter yet.
+  adapter       String?
+  isActive      Boolean   @default(true)
+  // Per-theater scan state — one site failing never blocks the others.
+  lastScrapedAt DateTime?
+  lastScrapeOk  Boolean?
+  lastError     String?
+  shows         Show[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Show {
+  id          String    @id @default(cuid())
+  theater     Theater   @relation(fields: [theaterId], references: [id], onDelete: Cascade)
+  theaterId   String
+  // Stable identity from the source (url / @id / hash) for upsert dedup.
+  externalId  String
+  title       String
+  description String?
+  startsAt    DateTime?
+  endsAt      DateTime?
+  venue       String?
+  category    String?
+  // Raw price label from the source; priceCents is the parsed value when known.
+  priceText   String?
+  priceCents  Int?
+  currency    String    @default("CLP")
+  sourceUrl   String?
+  imageUrl    String?
+  // Scan bookkeeping: when first/last seen, and whether still on the calendar.
+  firstSeenAt DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([theaterId, externalId])
+  @@index([startsAt])
+}
