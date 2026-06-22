@@ -1,0 +1,44 @@
+{
+  "nav": {
+    "findEvents": "Find events",
+    "teatros": "Theaters",
+    "createEvent": "Create event",
+    "dashboard": "Dashboard",
+    "login": "Log in",
+    "signup": "Sign up",
+    "logout": "Log out",
+    "greeting": "Hi",
+    "searchPlaceholder": "Search events",
+    "locationPlaceholder": "Location",
+    "searchAria": "Search"
+  },
+  "home": {
+    "heroBadge": "Find your scene",
+    "heroPre": "From",
+    "heroHighlight1": "rooftop sets",
+    "heroMid": "to",
+    "heroHighlight2": "sold-out nights",
+    "heroCta": "Explore live music",
+    "browseByBlock": "Browse by block",
+    "browseByCategory": "Browse by category",
+    "upcomingEvents": "Upcoming events",
+    "seeAll": "See all",
+    "comingSoon": "Coming soon",
+    "blockTeatrosDesc": "Live repertoire",
+    "blockLectures": "Lectures",
+    "blockFood": "Food",
+    "blockFilms": "Films"
+  },
+  "teatros": {
+    "metaTitle": "Theater in Santiago — Afisha",
+    "title": "Theater in Santiago",
+    "subtitlePrefix": "Santiago theater listings",
+    "functions": "shows",
+    "empty": "No shows yet. The daily scanner will populate them from each theater's site.",
+    "free": "Free",
+    "tickets": "Tickets",
+    "theatersCount": "theaters",
+    "theaterEmpty": "Repertoire coming soon.",
+    "officialSite": "Official site"
+  }
+}

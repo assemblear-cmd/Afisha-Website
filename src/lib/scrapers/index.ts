@@ -122,8 +122,215 @@ function jsonLdAdapter(key: string, carteleraPath: string): TheaterScraper {
   };
 }
 
+// ---- Teatro Municipal de Santiago (live reference adapter) -----------------
+// municipal.cl is WordPress; the repertoire lives in the custom `shows` post
+// type, exposed read-only at /wp-json/wp/v2/shows. One API call (no per-show
+// page fetches): title / venue / category / image come straight from the REST
+// item, and the function date is parsed from the Spanish text in content.
+
+const MONTHS_ES: Record<string, number> = {
+  enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
+  julio: 6, agosto: 7, septiembre: 8, setiembre: 8, octubre: 9, noviembre: 10, diciembre: 11,
+};
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;|&#0?38;/g, '&')
+    .replace(/&#8211;/g, '–')
+    .replace(/&#8212;/g, '—')
+    .replace(/&#8220;|&#8221;|&quot;/g, '"')
+    .replace(/&#8217;|&#8216;|&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é').replace(/&iacute;/g, 'í')
+    .replace(/&oacute;/g, 'ó').replace(/&uacute;/g, 'ú').replace(/&ntilde;/g, 'ñ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function stripTags(s: string): string {
+  return s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+}
+
+// Earliest upcoming "DD de MMMM [de YYYY]" date in the text. Year is inferred
+// when omitted; an evening (19:00) function time is assumed.
+function parseNextSpanishDate(text: string): Date | null {
+  // Handles single dates and ranges ("del 6 al 9 de julio") — takes the first day.
+  const re =
+    /(?:del\s+)?(\d{1,2})(?:\s+al\s+\d{1,2})?\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+(?:de\s+)?(\d{4}))?/gi;
+  const now = Date.now();
+  const grace = 12 * 60 * 60 * 1000;
+  let best: number | null = null;
+  for (const m of text.matchAll(re)) {
+    const day = parseInt(m[1], 10);
+    const month = MONTHS_ES[m[2].toLowerCase()];
+    if (month == null) continue;
+    const year = m[3] ? parseInt(m[3], 10) : new Date().getFullYear();
+    let t = new Date(year, month, day, 19, 0, 0).getTime();
+    if (!m[3] && t < now - 30 * 864e5) t = new Date(year + 1, month, day, 19, 0, 0).getTime();
+    if (isNaN(t)) continue;
+    if (t >= now - grace && (best == null || t < best)) best = t;
+  }
+  return best == null ? null : new Date(best);
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// Image source, most-reliable first: Yoast og:image (always populated on this
+// WP+Yoast site), then the featured media, then a content <img> (content images
+// are lazy-loaded, so accept data-src / data-lazy-src too).
+function pickImage(item: any, contentHtml: string): string | null {
+  const og = item?.yoast_head_json?.og_image?.[0]?.url;
+  if (typeof og === 'string' && og) return og;
+  const feat = item?._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+  if (typeof feat === 'string' && feat) return feat;
+  const m = contentHtml.match(/<img[^>]+(?:data-lazy-src|data-src|src)=["']([^"']+)["']/i);
+  return m && !/^data:image|placeholder|blank\.gif/i.test(m[1]) ? m[1] : null;
+}
+
+function termName(item: any, taxonomy: string): string | null {
+  const groups: any[] = item?._embedded?.['wp:term'] ?? [];
+  for (const g of groups) for (const t of g) if (t.taxonomy === taxonomy) return t.name as string;
+  return null;
+}
+
+// The `shows` CPT also holds non-performances (digital content, guided tours,
+// summer courses, costume sales). Filter those out by category and title.
+const MUNICIPAL_EXCLUDED_CATEGORIES = new Set(['Cartelera digital', 'Visitas guiadas temáticas']);
+const MUNICIPAL_EXCLUDED_TITLE = /venta de vestuario|curso\b|visita guiada|visita tem[aá]tica|c[aá]psula/i;
+
+function isMunicipalPerformance(category: string | null, title: string): boolean {
+  if (category && MUNICIPAL_EXCLUDED_CATEGORIES.has(category)) return false;
+  return !MUNICIPAL_EXCLUDED_TITLE.test(title);
+}
+
+// Image + headline date aren't in the REST list; each show page carries them as
+// og:image and og:description / <title>. One fetch gets both (low-noise vs.
+// scanning the whole page body, which is full of other shows' dates).
+// Teatro Municipal show pages have a "FECHAS" section whose first dated line is
+// the real function ("Domingo 9 de agosto – 19:00 horas"). Presale dates
+// ("Inicio de preventa…") sit under PREVENTA, so we scope to the FECHAS block
+// (stopping at the next section) and take the earliest upcoming date there.
+function parseMunicipalDate(html: string): Date | null {
+  const idx = html.search(/FECHAS/i);
+  let block: string;
+  if (idx >= 0) {
+    block = html.slice(idx, idx + 1500);
+    const stop = block.slice(6).search(/PREVENTA|PROGRAMA|ELENCO|PRECIOS|DURACI[ÓO]N|ENTRADAS|ABONO/i);
+    if (stop >= 0) block = block.slice(0, stop + 6);
+  } else {
+    block = stripTags(html).slice(0, 12000); // no FECHAS block — best-effort
+  }
+  const text = stripTags(block);
+  const re =
+    /(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+de\s+(\d{4}))?(?:\s*[–-]\s*(\d{1,2}):(\d{2}))?/gi;
+  const now = Date.now();
+  let best: number | null = null;
+  for (const m of text.matchAll(re)) {
+    const day = parseInt(m[1], 10);
+    const month = MONTHS_ES[m[2].toLowerCase()];
+    if (month == null) continue;
+    const year = m[3] ? parseInt(m[3], 10) : new Date().getFullYear();
+    const hh = m[4] ? parseInt(m[4], 10) : 19;
+    const mm = m[5] ? parseInt(m[5], 10) : 0;
+    let t = new Date(year, month, day, hh, mm).getTime();
+    if (!m[3] && t < now - 30 * 864e5) t = new Date(year + 1, month, day, hh, mm).getTime();
+    if (isNaN(t)) continue;
+    if (t >= now - 12 * 36e5 && (best == null || t < best)) best = t;
+  }
+  return best == null ? null : new Date(best);
+}
+
+async function fetchShowPageMeta(url: string): Promise<{ imageUrl: string | null; startsAt: Date | null }> {
+  try {
+    const res = await fetch(url, {
+      headers: { 'user-agent': 'AfishaBot/1.0 (+https://expresscarwash.cl)' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return { imageUrl: null, startsAt: null };
+    const html = await res.text();
+    const ogImg =
+      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1] ??
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)?.[1] ??
+      null;
+    // og:image is usually absent; fall back to the first uploaded content image
+    // (the show poster), skipping logos/icons by requiring an uploads path.
+    const contentImg =
+      html.match(
+        /<img[^>]+src=["'](https?:\/\/[^"']*\/(?:wp-content|uploads|cms)\/[^"']+\.(?:jpe?g|png|webp)[^"']*)["']/i
+      )?.[1] ?? null;
+    return { imageUrl: ogImg ?? contentImg, startsAt: parseMunicipalDate(html) };
+  } catch {
+    return { imageUrl: null, startsAt: null };
+  }
+}
+
+async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let i = 0;
+  const worker = async () => {
+    while (i < items.length) {
+      const idx = i++;
+      await fn(items[idx]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+}
+
+export const municipalScraper: TheaterScraper = {
+  key: 'municipal',
+  async fetchShows(theater) {
+    const base = theater.website.replace(/\/+$/, '');
+    const url = `${base}/wp-json/wp/v2/shows?per_page=60&_embed`;
+    const res = await fetch(url, {
+      headers: { 'user-agent': 'AfishaBot/1.0 (+https://expresscarwash.cl)' },
+      cache: 'no-store',
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
+    const items: any[] = await res.json();
+
+    const shows: ScrapedShow[] = [];
+    for (const it of items) {
+      const link: string | undefined = it?.link;
+      const title = decodeEntities(it?.title?.rendered ?? '');
+      if (!link || !title) continue;
+      const category = termName(it, 'category_show');
+      if (!isMunicipalPerformance(category, title)) continue;
+      const contentHtml: string = it?.content?.rendered ?? '';
+      const excerptHtml: string = it?.excerpt?.rendered ?? '';
+      shows.push({
+        externalId: link,
+        title,
+        description: decodeEntities(excerptHtml).slice(0, 600) || null,
+        // Prefer the excerpt's headline date, then fall back to content.
+        startsAt:
+          parseNextSpanishDate(stripTags(excerptHtml)) ??
+          parseNextSpanishDate(stripTags(contentHtml)),
+        venue: termName(it, 'sala_show'),
+        category: category ?? 'teatro',
+        priceText: null,
+        priceCents: null,
+        currency: 'CLP',
+        sourceUrl: link,
+        imageUrl: pickImage(it, contentHtml),
+      });
+    }
+
+    // Enrich missing image / date from each show page's meta (limited concurrency).
+    await mapLimit(shows, 6, async (s) => {
+      if (!s.sourceUrl) return;
+      const meta = await fetchShowPageMeta(s.sourceUrl);
+      if (!s.imageUrl) s.imageUrl = meta.imageUrl;
+      // The FECHAS-block date is more precise than the REST text guess.
+      if (meta.startsAt) s.startsAt = meta.startsAt;
+    });
+
+    return shows;
+  },
+};
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 export const SCRAPERS: Record<string, TheaterScraper> = {
-  municipal: jsonLdAdapter('municipal', '/'),
+  municipal: municipalScraper,
   gam: jsonLdAdapter('gam', '/cartelera/'),
 };
 

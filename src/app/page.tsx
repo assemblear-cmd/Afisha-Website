@@ -4,10 +4,13 @@ import { Container, LinkButton } from '@/components/ui';
 import { SearchBar } from '@/components/events/SearchBar';
 import { CategoryCircles } from '@/components/events/CategoryCircles';
 import { EventGrid } from '@/components/events/EventGrid';
+import { getLocale } from '@/i18n/getLocale';
+import { getDictionary } from '@/i18n/config';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
+  const t = getDictionary(getLocale()).home;
   const events = await prisma.event.findMany({
     where: {
       isPublished: true,
@@ -34,19 +37,19 @@ export default async function HomePage() {
 
             <div className="relative z-10 flex h-full max-w-2xl flex-col justify-center px-6 sm:px-12">
               <span className="w-fit rounded bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-sm">
-                Find your scene
+                {t.heroBadge}
               </span>
               <h1 className="mt-4 text-3xl font-extrabold uppercase leading-[1.05] text-white sm:text-5xl">
-                From{' '}
-                <span className="box-decoration-clone bg-coral px-2 text-white">rooftop sets</span>{' '}
-                to{' '}
-                <span className="box-decoration-clone bg-coral px-2 text-white">sold-out nights</span>
+                {t.heroPre}{' '}
+                <span className="box-decoration-clone bg-coral px-2 text-white">{t.heroHighlight1}</span>{' '}
+                {t.heroMid}{' '}
+                <span className="box-decoration-clone bg-coral px-2 text-white">{t.heroHighlight2}</span>
               </h1>
               <Link
                 href="/events?category=music"
                 className="mt-7 inline-flex w-fit items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-ink no-underline shadow-lg transition hover:bg-surface"
               >
-                Explore live music
+                {t.heroCta}
                 <span aria-hidden>→</span>
               </Link>
             </div>
@@ -57,7 +60,7 @@ export default async function HomePage() {
       {/* CONTENT BLOCKS — entry points into the backend-powered vitrina blocks */}
       <section className="pt-10">
         <Container>
-          <h2 className="mb-5 text-lg font-semibold text-ink">Browse by block</h2>
+          <h2 className="mb-5 text-lg font-semibold text-ink">{t.browseByBlock}</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Link
               href="/teatros"
@@ -65,12 +68,12 @@ export default async function HomePage() {
             >
               <span className="text-2xl">🎭</span>
               <span className="mt-1 font-semibold text-ink group-hover:text-coral">Teatros</span>
-              <span className="text-sm text-muted">Repertorio en vivo</span>
+              <span className="text-sm text-muted">{t.blockTeatrosDesc}</span>
             </Link>
             {[
-              { emoji: '🎓', label: 'Lectures' },
-              { emoji: '🍴', label: 'Food' },
-              { emoji: '🎬', label: 'Films' },
+              { emoji: '🎓', label: t.blockLectures },
+              { emoji: '🍴', label: t.blockFood },
+              { emoji: '🎬', label: t.blockFilms },
             ].map((b) => (
               <div
                 key={b.label}
@@ -78,7 +81,7 @@ export default async function HomePage() {
               >
                 <span className="text-2xl grayscale">{b.emoji}</span>
                 <span className="mt-1 font-semibold text-ink">{b.label}</span>
-                <span className="text-sm text-muted">Próximamente</span>
+                <span className="text-sm text-muted">{t.comingSoon}</span>
               </div>
             ))}
           </div>
@@ -95,7 +98,7 @@ export default async function HomePage() {
       {/* CATEGORY CIRCLES */}
       <section className="py-10">
         <Container>
-          <h2 className="mb-5 text-lg font-semibold text-ink">Browse by category</h2>
+          <h2 className="mb-5 text-lg font-semibold text-ink">{t.browseByCategory}</h2>
           <CategoryCircles />
         </Container>
       </section>
@@ -104,9 +107,9 @@ export default async function HomePage() {
       <section className="py-12 bg-surface">
         <Container>
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-ink">Upcoming events</h2>
+            <h2 className="text-2xl font-bold text-ink">{t.upcomingEvents}</h2>
             <LinkButton href="/events" variant="ghost" size="sm">
-              See all →
+              {t.seeAll} →
             </LinkButton>
           </div>
           <EventGrid events={events} />

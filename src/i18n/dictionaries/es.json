@@ -1,0 +1,44 @@
+{
+  "nav": {
+    "findEvents": "Descubrir eventos",
+    "teatros": "Teatros",
+    "createEvent": "Crear evento",
+    "dashboard": "Panel",
+    "login": "Iniciar sesión",
+    "signup": "Registrarse",
+    "logout": "Cerrar sesión",
+    "greeting": "Hola",
+    "searchPlaceholder": "Buscar eventos",
+    "locationPlaceholder": "Ubicación",
+    "searchAria": "Buscar"
+  },
+  "home": {
+    "heroBadge": "Encuentra tu ambiente",
+    "heroPre": "De",
+    "heroHighlight1": "sets en la azotea",
+    "heroMid": "a",
+    "heroHighlight2": "noches agotadas",
+    "heroCta": "Explorar música en vivo",
+    "browseByBlock": "Explorar por bloque",
+    "browseByCategory": "Explorar por categoría",
+    "upcomingEvents": "Próximos eventos",
+    "seeAll": "Ver todos",
+    "comingSoon": "Próximamente",
+    "blockTeatrosDesc": "Repertorio en vivo",
+    "blockLectures": "Charlas",
+    "blockFood": "Gastronomía",
+    "blockFilms": "Cine"
+  },
+  "teatros": {
+    "metaTitle": "Teatro en Santiago — Afisha",
+    "title": "Teatro en Santiago",
+    "subtitlePrefix": "Cartelera de teatros de Santiago",
+    "functions": "funciones",
+    "empty": "Aún no hay funciones. El escáner diario las irá poblando desde los sitios de cada teatro.",
+    "free": "Gratis",
+    "tickets": "Entradas",
+    "theatersCount": "teatros",
+    "theaterEmpty": "Repertorio próximamente.",
+    "officialSite": "Sitio oficial"
+  }
+}

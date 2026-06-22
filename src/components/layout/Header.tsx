@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth';
 import { Container, LinkButton } from '@/components/ui';
+import { getLocale } from '@/i18n/getLocale';
+import { getDictionary } from '@/i18n/config';
+import { LanguageMenu } from './LanguageMenu';
 
 function SearchIcon({ className }: { className?: string }) {
   return (
@@ -45,6 +48,8 @@ function PinIcon({ className }: { className?: string }) {
 export async function Header() {
   const user = await getCurrentUser();
   const firstName = user?.name?.split(' ')[0] ?? '';
+  const locale = getLocale();
+  const t = getDictionary(locale).nav;
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-white">
@@ -66,8 +71,8 @@ export async function Header() {
             <input
               name="query"
               type="text"
-              placeholder="Search events"
-              aria-label="Search events"
+              placeholder={t.searchPlaceholder}
+              aria-label={t.searchPlaceholder}
               className="min-w-0 flex-1 bg-transparent px-3 text-sm text-body placeholder:text-muted focus:outline-none"
             />
             <span className="h-6 w-px bg-ink/15" />
@@ -75,13 +80,13 @@ export async function Header() {
             <input
               name="city"
               type="text"
-              placeholder="Location"
-              aria-label="Location"
+              placeholder={t.locationPlaceholder}
+              aria-label={t.locationPlaceholder}
               className="w-28 bg-transparent px-2 text-sm text-body placeholder:text-muted focus:outline-none"
             />
             <button
               type="submit"
-              aria-label="Search"
+              aria-label={t.searchAria}
               className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-coral text-white transition hover:bg-coral-dark"
             >
               <SearchIcon />
@@ -94,14 +99,14 @@ export async function Header() {
               href="/events"
               className="hidden text-sm font-medium text-body no-underline hover:text-coral lg:inline"
             >
-              Find events
+              {t.findEvents}
             </Link>
 
             <Link
               href="/teatros"
-              className="hidden text-sm font-medium text-body no-underline hover:text-coral lg:inline"
+              className="text-sm font-medium text-body no-underline hover:text-coral"
             >
-              Teatros
+              {t.teatros}
             </Link>
 
             {user ? (
@@ -112,10 +117,10 @@ export async function Header() {
                       href="/dashboard"
                       className="hidden text-sm font-medium text-body no-underline hover:text-coral md:inline"
                     >
-                      Dashboard
+                      {t.dashboard}
                     </Link>
                     <LinkButton href="/dashboard/events/new" variant="primary" size="sm">
-                      Create event
+                      {t.createEvent}
                     </LinkButton>
                   </>
                 ) : (
@@ -123,13 +128,15 @@ export async function Header() {
                     href="/dashboard/events/new"
                     className="hidden text-sm font-medium text-body no-underline hover:text-coral md:inline"
                   >
-                    Create event
+                    {t.createEvent}
                   </Link>
                 )}
-                <span className="hidden text-sm text-muted sm:inline">Hi, {firstName}</span>
+                <span className="hidden text-sm text-muted sm:inline">
+                  {t.greeting}, {firstName}
+                </span>
                 <form action="/api/auth/logout" method="post">
                   <button type="submit" className="text-sm font-medium text-ink hover:text-coral">
-                    Log out
+                    {t.logout}
                   </button>
                 </form>
               </>
@@ -139,19 +146,21 @@ export async function Header() {
                   href="/dashboard/events/new"
                   className="hidden text-sm font-medium text-body no-underline hover:text-coral md:inline"
                 >
-                  Create event
+                  {t.createEvent}
                 </Link>
                 <Link
                   href="/login"
                   className="text-sm font-medium text-ink no-underline hover:text-coral"
                 >
-                  Log in
+                  {t.login}
                 </Link>
                 <LinkButton href="/register" variant="primary" size="sm">
-                  Sign up
+                  {t.signup}
                 </LinkButton>
               </>
             )}
+
+            <LanguageMenu current={locale} />
           </nav>
         </div>
       </Container>

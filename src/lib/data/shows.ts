@@ -26,3 +26,41 @@ export async function getUpcomingShows() {
 }
 
 export type ListedShow = Awaited<ReturnType<typeof getUpcomingShows>>[number];
+
+// Theater-first view for the /teatros page: every active theater, each with its
+// own upcoming shows (date-sorted). Theaters with no shows yet are still
+// returned so the page can list them with a "coming soon" placeholder.
+export async function getTheatersWithShows() {
+  return prisma.theater.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      website: true,
+      city: true,
+      shows: {
+        where: {
+          isActive: true,
+          OR: [{ startsAt: null }, { startsAt: { gte: new Date() } }],
+        },
+        select: {
+          id: true,
+          title: true,
+          startsAt: true,
+          venue: true,
+          category: true,
+          priceCents: true,
+          currency: true,
+          sourceUrl: true,
+          imageUrl: true,
+        },
+        orderBy: [{ startsAt: 'asc' }],
+        take: 50,
+      },
+    },
+    orderBy: [{ name: 'asc' }],
+  });
+}
+
+export type TheaterWithShows = Awaited<ReturnType<typeof getTheatersWithShows>>[number];
