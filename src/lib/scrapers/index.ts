@@ -51,8 +51,8 @@ function nodeToShow(node: any, pageUrl: string): ScrapedShow | null {
   if (!types.some((t) => t.includes('event')) || !node.name) return null;
 
   const url = node.url ?? node['@id'] ?? pageUrl;
-  const start = node.startDate ? new Date(node.startDate) : null;
-  const end = node.endDate ? new Date(node.endDate) : null;
+  const start = node.startDate ? isoToInstant(String(node.startDate)) : null;
+  const end = node.endDate ? isoToInstant(String(node.endDate)) : null;
   const location = asArray(node.location)[0];
   const image = asArray(node.image)[0];
   const { priceCents, priceText, currency } = parsePrice(node.offers);
@@ -107,20 +107,9 @@ export async function extractJsonLdEvents(pageUrl: string): Promise<ScrapedShow[
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ---- Per-theater adapters --------------------------------------------------
-// First-cut reference adapters point the generic extractor at a cartelera URL.
-// Add more here keyed by Theater.adapter; bespoke HTML parsers can replace the
-// JSON-LD strategy per site as needed.
-
-function jsonLdAdapter(key: string, carteleraPath: string): TheaterScraper {
-  return {
-    key,
-    async fetchShows(theater) {
-      const base = theater.website.replace(/\/+$/, '');
-      const url = carteleraPath.startsWith('http') ? carteleraPath : `${base}${carteleraPath}`;
-      return extractJsonLdEvents(url);
-    },
-  };
-}
+// Each adapter is keyed by Theater.adapter and maps a site's repertoire to
+// ScrapedShow[]. They reuse the generic extractJsonLdEvents() where a site has
+// schema.org markup (see gamScraper), or parse bespoke HTML (see municipal).
 
 // ---- Teatro Municipal de Santiago (live reference adapter) -----------------
 // municipal.cl is WordPress; the repertoire lives in the custom `shows` post
@@ -133,6 +122,55 @@ const MONTHS_ES: Record<string, number> = {
   julio: 6, agosto: 7, septiembre: 8, setiembre: 8, octubre: 9, noviembre: 10, diciembre: 11,
 };
 
+// Repertoire dates scraped from theater sites are Santiago wall-clock times.
+// `new Date(y, mo, d, ...)` would interpret them in the *host* timezone (UTC on
+// Vercel), shifting every showtime by Chile's offset. santiagoTime() pins the
+// components to America/Santiago and returns the matching UTC instant; the zone
+// offset is read via Intl, so CLT (−04) / CLST (−03) DST is handled with no
+// hardcoded value.
+const SANTIAGO_TZ = 'America/Santiago';
+
+function santiagoOffsetMs(utcMs: number): number {
+  // (Santiago wall-clock reading of this instant) − (its UTC reading) = offset.
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: SANTIAGO_TZ,
+    hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(new Date(utcMs));
+  const f = (type: string) => {
+    const p = parts.find((x) => x.type === type);
+    return p ? parseInt(p.value, 10) : 0;
+  };
+  return Date.UTC(f('year'), f('month') - 1, f('day'), f('hour'), f('minute'), f('second')) - utcMs;
+}
+
+function santiagoTime(year: number, month: number, day: number, hh = 0, mm = 0): Date {
+  // Treat the components as UTC, then subtract Santiago's offset at that instant
+  // to land on the UTC instant whose Santiago wall clock matches the input.
+  const asUtc = Date.UTC(year, month, day, hh, mm);
+  return new Date(asUtc - santiagoOffsetMs(asUtc));
+}
+
+// schema.org dates are ISO 8601, but theater feeds often omit the timezone
+// (e.g. GAM emits "2026-10-02T19:30:00"). A string carrying an offset (Z or
+// ±hh:mm) is an absolute instant; an offset-less one is the venue's Santiago
+// wall-clock time, so anchor it there rather than let `new Date()` read it in
+// the host timezone.
+function isoToInstant(value: string): Date | null {
+  const s = value.trim();
+  if (/(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(s)) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
+  if (!m) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return santiagoTime(+m[1], +m[2] - 1, +m[3], m[4] ? +m[4] : 0, m[5] ? +m[5] : 0);
+}
+
 function decodeEntities(s: string): string {
   return s
     .replace(/&amp;|&#0?38;/g, '&')
@@ -143,6 +181,7 @@ function decodeEntities(s: string): string {
     .replace(/&nbsp;/g, ' ')
     .replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é').replace(/&iacute;/g, 'í')
     .replace(/&oacute;/g, 'ó').replace(/&uacute;/g, 'ú').replace(/&ntilde;/g, 'ñ')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/<[^>]+>/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -166,8 +205,8 @@ function parseNextSpanishDate(text: string): Date | null {
     const month = MONTHS_ES[m[2].toLowerCase()];
     if (month == null) continue;
     const year = m[3] ? parseInt(m[3], 10) : new Date().getFullYear();
-    let t = new Date(year, month, day, 19, 0, 0).getTime();
-    if (!m[3] && t < now - 30 * 864e5) t = new Date(year + 1, month, day, 19, 0, 0).getTime();
+    let t = santiagoTime(year, month, day, 19, 0).getTime();
+    if (!m[3] && t < now - 30 * 864e5) t = santiagoTime(year + 1, month, day, 19, 0).getTime();
     if (isNaN(t)) continue;
     if (t >= now - grace && (best == null || t < best)) best = t;
   }
@@ -232,8 +271,8 @@ function parseMunicipalDate(html: string): Date | null {
     const year = m[3] ? parseInt(m[3], 10) : new Date().getFullYear();
     const hh = m[4] ? parseInt(m[4], 10) : 19;
     const mm = m[5] ? parseInt(m[5], 10) : 0;
-    let t = new Date(year, month, day, hh, mm).getTime();
-    if (!m[3] && t < now - 30 * 864e5) t = new Date(year + 1, month, day, hh, mm).getTime();
+    let t = santiagoTime(year, month, day, hh, mm).getTime();
+    if (!m[3] && t < now - 30 * 864e5) t = santiagoTime(year + 1, month, day, hh, mm).getTime();
     if (isNaN(t)) continue;
     if (t >= now - 12 * 36e5 && (best == null || t < best)) best = t;
   }
@@ -329,9 +368,81 @@ export const municipalScraper: TheaterScraper = {
 };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+// ---- Centro Gabriela Mistral (GAM) ----------------------------------------
+// gam.cl is a Django/Wagtail site with no public API, but every show detail
+// page embeds a schema.org Event in JSON-LD. There's no single cartelera page,
+// so we crawl the performing-arts discipline listings, collect detail-page
+// URLs, and run the generic JSON-LD extractor on each. Non-performances (open
+// calls, archive, talks) carry no dated Event and drop out on their own.
+
+const GAM_DISCIPLINES: Record<string, string> = {
+  teatro: 'Teatro',
+  danza: 'Danza',
+  'musica-popular': 'Música',
+  musica: 'Música',
+};
+
+// Listing detail links look like /es/que-hacer-en-gam/<discipline>/<slug>/.
+// Skip the archive and open-call pages — they aren't performances.
+const GAM_EXCLUDED_SLUG = /\/(?:historico|convocatoria[a-z0-9-]*)\/?$/i;
+
+async function gamDiscoverShowUrls(discipline: string): Promise<string[]> {
+  const listUrl = `https://gam.cl/es/que-hacer-en-gam/${discipline}/`;
+  const res = await fetch(listUrl, {
+    headers: { 'user-agent': 'AfishaBot/1.0 (+https://expresscarwash.cl)' },
+    cache: 'no-store',
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) return [];
+  const html = await res.text();
+  const re = new RegExp(`https://gam\\.cl/es/que-hacer-en-gam/${discipline}/[a-z0-9-]+/?`, 'gi');
+  const urls = new Set<string>();
+  for (const m of html.matchAll(re)) {
+    const u = m[0].endsWith('/') ? m[0] : `${m[0]}/`;
+    if (!GAM_EXCLUDED_SLUG.test(u)) urls.add(u);
+  }
+  return [...urls];
+}
+
+// Each GAM detail page carries one schema.org Event; reuse the generic
+// extractor and keep only pages that yield a dated performance. The category is
+// the discipline section the show was found under (teatro / danza / música).
+export const gamScraper: TheaterScraper = {
+  key: 'gam',
+  async fetchShows() {
+    const byUrl = new Map<string, string>(); // detail URL -> discipline label
+    for (const [disc, label] of Object.entries(GAM_DISCIPLINES)) {
+      let urls: string[] = [];
+      try {
+        urls = await gamDiscoverShowUrls(disc);
+      } catch {
+        urls = []; // one discipline listing failing never blocks the others
+      }
+      for (const u of urls) if (!byUrl.has(u)) byUrl.set(u, label);
+    }
+
+    const shows: ScrapedShow[] = [];
+    await mapLimit([...byUrl.keys()], 6, async (url) => {
+      let events: ScrapedShow[] = [];
+      try {
+        events = await extractJsonLdEvents(url);
+      } catch {
+        return; // a single broken detail page never blocks the others
+      }
+      const ev = events[0];
+      if (!ev || !ev.startsAt) return; // no dated Event -> not a performance
+      ev.category = byUrl.get(url) ?? 'teatro';
+      ev.venue = ev.venue ? decodeEntities(ev.venue) : null;
+      shows.push(ev);
+    });
+
+    return shows;
+  },
+};
+
 export const SCRAPERS: Record<string, TheaterScraper> = {
   municipal: municipalScraper,
-  gam: jsonLdAdapter('gam', '/cartelera/'),
+  gam: gamScraper,
 };
 
 // ---- Orchestrator ----------------------------------------------------------
