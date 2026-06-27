@@ -440,9 +440,109 @@ export const gamScraper: TheaterScraper = {
   },
 };
 
+// ---- Teatro UC (Facultad de Artes UC) --------------------------------------
+// teatrouc.uc.cl runs The Events Calendar (Modern Tribe), which serves a clean
+// REST feed at /wp-json/tribe/events/v1/events: every event carries an absolute
+// utc_start_date plus title / venue / image / cost. So this adapter is a straight
+// map over the paged feed — no per-show fetches, no JSON-LD, no date guessing
+// (the UTC instant is authoritative). The seed URL teatrouc.cl 301s to the
+// canonical teatrouc.uc.cl where the API lives, so the host is pinned here the
+// same way gam.cl is in gamScraper.
+
+const TEATROUC_API = 'https://teatrouc.uc.cl/wp-json/tribe/events/v1/events';
+
+// The calendar also carries workshops, talks and auditions; drop the obvious
+// non-performances by title keyword.
+const TEATROUC_EXCLUDED_TITLE =
+  /\b(taller|curso|conversatorio|laboratorio|audici[oó]n|convocatoria|seminario|charla|mesa\s+redonda)\b/i;
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// The Events Calendar emits utc_* fields as UTC wall-clock with no zone marker
+// ("2026-06-04 23:00:00"); tag those with Z. start_date / end_date are the venue's
+// Santiago wall clock, read as such via the shared isoToInstant.
+function tecInstant(value: unknown, utc: boolean): Date | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  return isoToInstant(value.trim().replace(' ', 'T') + (utc ? 'Z' : ''));
+}
+
+function tecCost(ev: any): { priceCents: number | null; priceText: string | null } {
+  const values: any[] = Array.isArray(ev?.cost_details?.values) ? ev.cost_details.values : [];
+  const nums = values
+    .map((v) => parseFloat(String(v).replace(/[^\d.]/g, '')))
+    .filter((n) => isFinite(n));
+  if (nums.length) {
+    // Cheapest tier; CLP * 100 keeps the cents convention (CLP has no minor unit).
+    return { priceCents: Math.round(Math.min(...nums) * 100), priceText: ev.cost || null };
+  }
+  const cost = typeof ev?.cost === 'string' ? ev.cost.trim() : '';
+  if (/liberad|gratis|gratuit|entrada\s+libre/i.test(cost)) return { priceCents: 0, priceText: cost };
+  return { priceCents: null, priceText: cost || null };
+}
+
+export const teatroUcScraper: TheaterScraper = {
+  key: 'teatrouc',
+  async fetchShows() {
+    const today = new Date().toISOString().slice(0, 10); // only upcoming events
+    const shows: ScrapedShow[] = [];
+    let page = 1;
+    let totalPages = 1;
+    do {
+      const url = `${TEATROUC_API}?per_page=50&page=${page}&start_date=${today}`;
+      let data: any;
+      try {
+        const res = await fetch(url, {
+          headers: { 'user-agent': 'AfishaBot/1.0 (+https://expresscarwash.cl)' },
+          cache: 'no-store',
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!res.ok) break; // TEC 400s past the last page
+        data = await res.json();
+      } catch {
+        break;
+      }
+      totalPages = Number(data?.total_pages) || 1;
+      for (const ev of Array.isArray(data?.events) ? data.events : []) {
+        const eventUrl = typeof ev?.url === 'string' ? ev.url : null;
+        const title = decodeEntities(String(ev?.title ?? '')).trim();
+        if (!eventUrl || !title || TEATROUC_EXCLUDED_TITLE.test(title)) continue;
+        const venueObj = ev?.venue;
+        const venue =
+          venueObj && typeof venueObj === 'object' && !Array.isArray(venueObj) && typeof venueObj.venue === 'string'
+            ? decodeEntities(venueObj.venue)
+            : null;
+        const imageObj = ev?.image;
+        const imageUrl =
+          imageObj && typeof imageObj === 'object' && typeof imageObj.url === 'string' ? imageObj.url : null;
+        const category =
+          Array.isArray(ev?.categories) && ev.categories[0]?.name ? String(ev.categories[0].name) : 'teatro';
+        const { priceCents, priceText } = tecCost(ev);
+        shows.push({
+          externalId: eventUrl,
+          title,
+          description: decodeEntities(String(ev?.excerpt ?? ev?.description ?? '')).slice(0, 600) || null,
+          startsAt: tecInstant(ev?.utc_start_date, true) ?? tecInstant(ev?.start_date, false),
+          endsAt: tecInstant(ev?.utc_end_date, true) ?? tecInstant(ev?.end_date, false),
+          venue,
+          category,
+          priceText,
+          priceCents,
+          currency: 'CLP',
+          sourceUrl: eventUrl,
+          imageUrl,
+        });
+      }
+      page++;
+    } while (page <= totalPages);
+
+    return shows;
+  },
+};
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 export const SCRAPERS: Record<string, TheaterScraper> = {
   municipal: municipalScraper,
   gam: gamScraper,
+  teatrouc: teatroUcScraper,
 };
 
 // ---- Orchestrator ----------------------------------------------------------
