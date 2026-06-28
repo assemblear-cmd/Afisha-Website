@@ -85,6 +85,9 @@ model Theater {
   name          String
   website       String
   city          String    @default("Santiago")
+  // Venue categories as slugs (e.g. "teatro", "centro-cultural", "club"). A
+  // venue can belong to several, depending on the kind of event it hosts.
+  categories    String[]  @default([])
   // Scraper adapter key (e.g. "municipal", "gam"); null = no adapter yet.
   adapter       String?
   isActive      Boolean   @default(true)

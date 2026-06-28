@@ -390,16 +390,29 @@ async function main() {
   await prisma.show.deleteMany();
   await prisma.theater.deleteMany();
 
-  const theaters: { slug: string; name: string; website: string; adapter: string | null }[] = [
-    { slug: 'municipal-santiago', name: 'Teatro Municipal de Santiago', website: 'https://www.municipal.cl', adapter: 'municipal' },
-    { slug: 'municipal-las-condes', name: 'Teatro Municipal de Las Condes', website: 'https://www.tmlascondes.cl', adapter: null },
-    { slug: 'gam', name: 'Centro Cultural Gabriela Mistral (GAM)', website: 'https://www.gam.cl', adapter: 'gam' },
-    { slug: 'teatro-uc', name: 'Teatro UC (Universidad Católica)', website: 'https://www.teatrouc.cl', adapter: 'teatrouc' },
-    { slug: 'teatro-del-puente', name: 'Teatro del Puente', website: 'https://www.teatrodelpuente.cl', adapter: null },
-    { slug: 'teatro-mori', name: 'Teatro Mori', website: 'https://www.teatromori.cl', adapter: null },
-    { slug: 'teatro-sidarte', name: 'Teatro Sidarte', website: 'https://www.sidarte.cl', adapter: null },
-    { slug: 'teatro-azares', name: 'Teatro Azares', website: 'https://www.teatroazares.cl', adapter: null },
-    { slug: 'teatro-nunoa', name: 'Teatro Municipal de Ñuñoa', website: 'https://www.nunoa.cl/teatro-municipal', adapter: null },
+  // Venue categories are slugs; an organization can belong to several depending
+  // on the kind of event it hosts (e.g. a cultural center that also stages plays).
+  const theaters: {
+    slug: string;
+    name: string;
+    website: string;
+    adapter: string | null;
+    categories: string[];
+  }[] = [
+    { slug: 'municipal-santiago', name: 'Teatro Municipal de Santiago', website: 'https://www.municipal.cl', adapter: 'municipal', categories: ['teatro'] },
+    { slug: 'municipal-las-condes', name: 'Teatro Municipal de Las Condes', website: 'https://www.tmlascondes.cl', adapter: null, categories: ['teatro'] },
+    { slug: 'gam', name: 'Centro Cultural Gabriela Mistral (GAM)', website: 'https://www.gam.cl', adapter: 'gam', categories: ['teatro', 'centro-cultural'] },
+    { slug: 'teatro-uc', name: 'Teatro UC (Universidad Católica)', website: 'https://www.teatrouc.cl', adapter: 'teatrouc', categories: ['teatro'] },
+    { slug: 'teatro-del-puente', name: 'Teatro del Puente', website: 'https://www.teatrodelpuente.cl', adapter: null, categories: ['teatro'] },
+    { slug: 'teatro-mori', name: 'Teatro Mori', website: 'https://www.teatromori.cl', adapter: null, categories: ['teatro'] },
+    { slug: 'teatro-sidarte', name: 'Teatro Sidarte', website: 'https://www.sidarte.cl', adapter: null, categories: ['teatro'] },
+    { slug: 'teatro-azares', name: 'Teatro Azares', website: 'https://www.teatroazares.cl', adapter: null, categories: ['teatro'] },
+    { slug: 'teatro-nunoa', name: 'Teatro Municipal de Ñuñoa', website: 'https://www.nunoa.cl/teatro-municipal', adapter: null, categories: ['teatro'] },
+    // Venues that program both theater and cultural-center events.
+    { slug: 'centro-cultural-ceina', name: 'Centro Cultural CEINA', website: 'https://ceina.cl', adapter: null, categories: ['teatro', 'centro-cultural'] },
+    { slug: 'gran-sala-sinfonica-nacional', name: 'Gran Sala Sinfónica Nacional', website: 'https://www.ceacuchile.cl/nueva-sala', adapter: null, categories: ['teatro', 'centro-cultural'] },
+    // Clubs.
+    { slug: 'club-subterraneo', name: 'Club Subterráneo', website: 'https://feverup.com/en/santiago/venue/club-subterraneo', adapter: null, categories: ['club'] },
   ];
 
   const sampleShows: Record<
@@ -418,7 +431,7 @@ async function main() {
 
   for (const t of theaters) {
     const theater = await prisma.theater.create({
-      data: { slug: t.slug, name: t.name, website: t.website, adapter: t.adapter, city: 'Santiago' },
+      data: { slug: t.slug, name: t.name, website: t.website, adapter: t.adapter, categories: t.categories, city: 'Santiago' },
     });
     for (const s of sampleShows[t.slug] ?? []) {
       await prisma.show.create({
