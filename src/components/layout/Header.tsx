@@ -4,6 +4,7 @@ import { Container, LinkButton } from '@/components/ui';
 import { getLocale } from '@/i18n/getLocale';
 import { getDictionary } from '@/i18n/config';
 import { LanguageMenu } from './LanguageMenu';
+import { ThemeToggle } from './ThemeToggle';
 
 function SearchIcon({ className }: { className?: string }) {
   return (
@@ -52,7 +53,7 @@ export async function Header() {
   const t = getDictionary(locale).nav;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-ink/10 bg-white">
+    <header className="sticky top-0 z-40 border-b border-ink/10 bg-card">
       <Container>
         <div className="flex h-16 items-center gap-4">
           {/* Logo */}
@@ -65,7 +66,7 @@ export async function Header() {
           <form
             action="/events"
             method="get"
-            className="hidden h-11 max-w-xl flex-1 items-center rounded-full border border-ink/15 bg-white pl-4 pr-1.5 shadow-sm focus-within:border-coral lg:flex"
+            className="hidden h-11 max-w-xl flex-1 items-center rounded-full border border-ink/15 bg-card pl-4 pr-1.5 shadow-sm focus-within:border-coral lg:flex"
           >
             <SearchIcon className="text-muted" />
             <input
@@ -160,6 +161,7 @@ export async function Header() {
               </>
             )}
 
+            <ThemeToggle />
             <LanguageMenu current={locale} />
           </nav>
         </div>

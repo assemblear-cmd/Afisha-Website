@@ -66,7 +66,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   return (
     <main className="min-h-screen bg-surface">
       {/* Search bar strip */}
-      <div className="bg-white border-b border-ink/5 py-4">
+      <div className="bg-card border-b border-ink/5 py-4">
         <Container>
           <SearchBar defaultValues={searchParams} />
         </Container>

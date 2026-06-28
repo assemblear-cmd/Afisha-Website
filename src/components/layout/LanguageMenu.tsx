@@ -43,7 +43,7 @@ export function LanguageMenu({ current }: { current: Locale }) {
         <ul
           role="listbox"
           aria-label="Idioma / Language"
-          className="absolute right-0 z-50 mt-2 min-w-[8rem] rounded-lg border border-ink/10 bg-white py-1 shadow-card"
+          className="absolute right-0 z-50 mt-2 min-w-[8rem] rounded-lg border border-ink/10 bg-card py-1 shadow-card"
         >
           {locales.map((loc) => (
             <li key={loc}>

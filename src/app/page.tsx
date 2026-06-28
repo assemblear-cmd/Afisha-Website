@@ -47,7 +47,7 @@ export default async function HomePage() {
               </h1>
               <Link
                 href="/events?category=music"
-                className="mt-7 inline-flex w-fit items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-ink no-underline shadow-lg transition hover:bg-surface"
+                className="mt-7 inline-flex w-fit items-center gap-2 rounded-full bg-card px-6 py-3 text-sm font-bold text-ink no-underline shadow-lg transition hover:bg-surface"
               >
                 {t.heroCta}
                 <span aria-hidden>→</span>
@@ -64,7 +64,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Link
               href="/teatros"
-              className="group flex flex-col gap-1 rounded-xl border border-ink/10 bg-white p-5 no-underline transition hover:-translate-y-0.5 hover:border-coral hover:shadow-card"
+              className="group flex flex-col gap-1 rounded-xl border border-ink/10 bg-card p-5 no-underline transition hover:-translate-y-0.5 hover:border-coral hover:shadow-card"
             >
               <span className="text-2xl">🎭</span>
               <span className="mt-1 font-semibold text-ink group-hover:text-coral">Teatros</span>

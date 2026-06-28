@@ -6,7 +6,7 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: 'bg-coral text-white hover:bg-coral-dark',
-  secondary: 'border border-ink/20 text-ink bg-white hover:bg-surface',
+  secondary: 'border border-ink/20 text-ink bg-card hover:bg-surface',
   ghost: 'text-coral hover:underline bg-transparent',
 };
 

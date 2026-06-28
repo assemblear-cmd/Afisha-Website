@@ -2,6 +2,7 @@ import type { Config } from 'tailwindcss';
 
 const config: Config = {
   content: ['./src/**/*.{ts,tsx}'],
+  darkMode: 'class',
   theme: {
     container: {
       center: true,
@@ -16,11 +17,16 @@ const config: Config = {
           DEFAULT: '#F05537',
           dark: '#D9442A',
         },
-        ink: '#1E0A3C',
-        body: '#39364F',
-        muted: '#6F7287',
         success: '#3EB489',
-        surface: '#F8F7FA',
+        // Semantic tokens backed by CSS variables (see globals.css) so the whole
+        // UI flips with the `dark` class. RGB channels keep Tailwind alpha
+        // utilities working (border-ink/10, bg-surface/40, …).
+        ink: 'rgb(var(--color-ink) / <alpha-value>)',
+        body: 'rgb(var(--color-body) / <alpha-value>)',
+        muted: 'rgb(var(--color-muted) / <alpha-value>)',
+        surface: 'rgb(var(--color-surface) / <alpha-value>)',
+        card: 'rgb(var(--color-card) / <alpha-value>)',
+        canvas: 'rgb(var(--color-canvas) / <alpha-value>)',
       },
       fontFamily: {
         sans: [

@@ -5,8 +5,31 @@
 @tailwind utilities;
 
 @layer base {
+  /* Semantic color tokens as RGB channels; the .dark overrides flip the whole
+     UI. Consumed via Tailwind tokens (text-ink, bg-card, border-ink/10, …). */
+  :root {
+    --color-ink: 30 10 60; /* #1E0A3C */
+    --color-body: 57 54 79; /* #39364F */
+    --color-muted: 111 114 135; /* #6F7287 */
+    --color-surface: 248 247 250; /* #F8F7FA */
+    --color-card: 255 255 255; /* #FFFFFF */
+    --color-canvas: 255 255 255; /* page background */
+    color-scheme: light;
+  }
+
+  .dark {
+    --color-ink: 244 242 248; /* near-white headings/text */
+    --color-body: 201 198 212;
+    --color-muted: 150 147 165;
+    --color-surface: 36 31 51; /* subtly elevated dark */
+    --color-card: 27 23 39; /* card / header surface */
+    --color-canvas: 17 15 26; /* deep page background */
+    color-scheme: dark;
+  }
+
   body {
-    @apply bg-white text-body font-sans antialiased;
+    @apply bg-canvas text-body font-sans antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   h1,

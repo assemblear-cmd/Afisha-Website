@@ -11,7 +11,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
     <select
       ref={ref}
       className={clsx(
-        'w-full rounded-md border border-ink/15 px-3 py-2 text-body focus:border-coral focus:ring-2 focus:ring-coral/30 outline-none bg-white',
+        'w-full rounded-md border border-ink/15 px-3 py-2 text-body focus:border-coral focus:ring-2 focus:ring-coral/30 outline-none bg-card',
         className
       )}
       {...props}
