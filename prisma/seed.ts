@@ -402,7 +402,7 @@ async function main() {
     categories: string[];
   }[] = [
     { slug: 'municipal-santiago', name: 'Teatro Municipal de Santiago', website: 'https://www.municipal.cl', adapter: 'municipal', categories: ['teatro', 'sala-de-conciertos'] },
-    { slug: 'municipal-las-condes', name: 'Teatro Municipal de Las Condes', website: 'https://www.tmlascondes.cl', adapter: null, categories: ['teatro'] },
+    { slug: 'municipal-las-condes', name: 'Teatro Municipal de Las Condes', website: 'https://www.tmlascondes.cl', adapter: 'lascondes', categories: ['teatro'] },
     { slug: 'gam', name: 'Centro Cultural Gabriela Mistral (GAM)', website: 'https://www.gam.cl', adapter: 'gam', categories: ['centro-cultural', 'teatro'] },
     { slug: 'teatro-uc', name: 'Teatro UC (Universidad Católica)', website: 'https://www.teatrouc.cl', adapter: 'teatrouc', categories: ['teatro', 'universidad'] },
     { slug: 'teatro-del-puente', name: 'Teatro del Puente', website: 'https://www.teatrodelpuente.cl', adapter: null, categories: ['teatro'] },

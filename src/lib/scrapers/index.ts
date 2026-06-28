@@ -32,7 +32,6 @@ export interface TheaterScraper {
 // strategy a per-theater adapter reuses by pointing it at a cartelera URL.
 // Sites without JSON-LD yield [] until a bespoke parser is added.
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 function asArray<T>(v: T | T[] | undefined | null): T[] {
   if (v == null) return [];
   return Array.isArray(v) ? v : [v];
@@ -108,7 +107,6 @@ export async function extractJsonLdEvents(pageUrl: string): Promise<ScrapedShow[
   // Dedup by externalId.
   return [...new Map(shows.map((s) => [s.externalId, s])).values()];
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ---- Per-theater adapters --------------------------------------------------
 // Each adapter is keyed by Theater.adapter and maps a site's repertoire to
@@ -217,7 +215,6 @@ function parseNextSpanishDate(text: string): Date | null {
   return best == null ? null : new Date(best);
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Image source, most-reliable first: Yoast og:image (always populated on this
 // WP+Yoast site), then the featured media, then a content <img> (content images
 // are lazy-loaded, so accept data-src / data-lazy-src too).
@@ -370,7 +367,6 @@ export const municipalScraper: TheaterScraper = {
     return shows;
   },
 };
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ---- Centro Gabriela Mistral (GAM) ----------------------------------------
 // gam.cl is a Django/Wagtail site with no public API, but every show detail
@@ -444,6 +440,218 @@ export const gamScraper: TheaterScraper = {
   },
 };
 
+// ---- Teatro Municipal de Las Condes ---------------------------------------
+// tmlascondes.cl is WordPress, but the public REST posts have empty content and
+// no event metadata. The live repertoire is rendered on /estrenos/ as cards;
+// each detail page carries the useful parts: exact "Fechas y Horarios", ticket
+// URL, price in a small schema.org Event block, and og:image/description.
+
+interface LasCondesCard {
+  url: string;
+  title: string;
+  category: string | null;
+  dateText: string | null;
+  imageUrl: string | null;
+}
+
+function htmlText(html: string): string {
+  return decodeEntities(
+    html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<[^>]+>/g, ' ')
+  );
+}
+
+function metaContent(html: string, key: string): string | null {
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const before = new RegExp(
+    `<meta[^>]+(?:property|name)=["']${escaped}["'][^>]+content=["']([^"']*)["']`,
+    'i'
+  );
+  const after = new RegExp(
+    `<meta[^>]+content=["']([^"']*)["'][^>]+(?:property|name)=["']${escaped}["']`,
+    'i'
+  );
+  const value = html.match(before)?.[1] ?? html.match(after)?.[1];
+  return value ? decodeEntities(value) : null;
+}
+
+function firstClassText(html: string, className: string): string | null {
+  const re = new RegExp(`class=["'][^"']*${className}[^"']*["'][^>]*>([\\s\\S]*?)<\\/[^>]+>`, 'i');
+  return decodeEntities(html.match(re)?.[1] ?? '') || null;
+}
+
+function parseLasCondesCards(html: string): LasCondesCard[] {
+  const cards = new Map<string, LasCondesCard>();
+  const articleRe = /<article\b[^>]*class=["'][^"']*\bcartelera-item\b[^"']*["'][\s\S]*?<\/article>/gi;
+  for (const m of html.matchAll(articleRe)) {
+    const block = m[0];
+    const url = decodeEntities(block.match(/<a\s+href=["']([^"']+)/i)?.[1] ?? '');
+    const title = firstClassText(block, 'titulo-evento');
+    if (!url || !title) continue;
+    const category =
+      decodeEntities(
+        block.match(/class=["'][^"']*tipo-espectaculo[^"']*["'][\s\S]*?<strong>([\s\S]*?)<\/strong>/i)?.[1] ?? ''
+      ) || null;
+    const dateText = firstClassText(block, 'fecha');
+    const imageUrl = decodeEntities(block.match(/background-image:url\(['"]?([^'")]+)['"]?\)/i)?.[1] ?? '') || null;
+    cards.set(url, { url, title, category, dateText, imageUrl });
+  }
+  return [...cards.values()];
+}
+
+function parseLasCondesDateText(text: string, requireTime: boolean): Date | null {
+  const months = Object.keys(MONTHS_ES).join('|');
+  const re = new RegExp(
+    `(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)?\\s*` +
+      `(\\d{1,2})(?:\\s*(?:al|a|y|[-–])\\s*\\d{1,2})?\\s+de\\s+(${months})` +
+      `(?:\\s+(?:de\\s+)?(\\d{4}))?` +
+      `(?:\\s*[•·,\\-–]?\\s*(\\d{1,2})(?::(\\d{2}))?\\s*(?:horas?|hrs?\\.?|h\\b))?`,
+    'gi'
+  );
+  const now = Date.now();
+  const grace = 12 * 60 * 60 * 1000;
+  let best: number | null = null;
+  for (const m of text.matchAll(re)) {
+    if (requireTime && !m[4]) continue;
+    const day = parseInt(m[1], 10);
+    const month = MONTHS_ES[m[2].toLowerCase()];
+    if (month == null) continue;
+    const year = m[3] ? parseInt(m[3], 10) : new Date().getFullYear();
+    const hh = m[4] ? parseInt(m[4], 10) : 19;
+    const mm = m[5] ? parseInt(m[5], 10) : 0;
+    let t = santiagoTime(year, month, day, hh, mm).getTime();
+    if (!m[3] && t < now - 30 * 864e5) t = santiagoTime(year + 1, month, day, hh, mm).getTime();
+    if (isNaN(t)) continue;
+    if (t >= now - grace && (best == null || t < best)) best = t;
+  }
+  return best == null ? null : new Date(best);
+}
+
+function lasCondesJsonLdEvents(html: string): any[] {
+  const events: any[] = [];
+  for (const m of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    let data: any;
+    try {
+      data = JSON.parse(m[1].trim());
+    } catch {
+      continue;
+    }
+    const nodes = asArray(data).flatMap((d: any) => (d?.['@graph'] ? asArray(d['@graph']) : [d]));
+    for (const node of nodes) {
+      const types = asArray(node?.['@type']).map((t) => String(t).toLowerCase());
+      if (types.some((t) => t.includes('event'))) events.push(node);
+    }
+  }
+  return events;
+}
+
+function parseClpAmount(value: unknown): number | null {
+  if (typeof value === 'number') return isFinite(value) ? value : null;
+  if (typeof value !== 'string') return null;
+  const raw = value.trim();
+  if (!raw) return null;
+  const cleaned = raw.replace(/[^\d,.-]/g, '');
+  const normalized = /^\d{1,3}(?:\.\d{3})+(?:,\d+)?$/.test(cleaned)
+    ? cleaned.replace(/\./g, '').replace(',', '.')
+    : cleaned.replace(',', '.');
+  const n = parseFloat(normalized);
+  return isFinite(n) ? n : null;
+}
+
+function lasCondesPrice(events: any[]): { priceCents: number | null; priceText: string | null } {
+  for (const ev of events) {
+    const offer = asArray(ev?.offers)[0];
+    const raw = offer?.price ?? offer?.lowPrice;
+    const amount = parseClpAmount(raw);
+    if (amount != null) {
+      const currency = offer?.priceCurrency ?? 'CLP';
+      return {
+        priceCents: Math.round(amount * 100),
+        priceText: `${new Intl.NumberFormat('es-CL').format(Math.round(amount))} ${currency}`,
+      };
+    }
+  }
+  return { priceCents: null, priceText: null };
+}
+
+function lasCondesEventStart(events: any[]): Date | null {
+  const now = Date.now();
+  const grace = 12 * 60 * 60 * 1000;
+  for (const ev of events) {
+    if (typeof ev?.startDate !== 'string') continue;
+    const d = isoToInstant(ev.startDate);
+    if (d && !isNaN(d.getTime()) && d.getTime() >= now - grace) return d;
+  }
+  return null;
+}
+
+function lasCondesTicketUrl(html: string): string | null {
+  const urls = [...html.matchAll(/href=["']([^"']*(?:sertex|puntoticket)[^"']*)["']/gi)]
+    .map((m) => decodeEntities(m[1]))
+    .filter(Boolean);
+  return urls[0] ?? null;
+}
+
+export const lasCondesScraper: TheaterScraper = {
+  key: 'lascondes',
+  async fetchShows(theater) {
+    const base = theater.website.replace(/\/+$/, '');
+    const listUrl = `${base}/estrenos/`;
+    const res = await fetch(listUrl, {
+      headers: { 'user-agent': 'AfishaBot/1.0 (+https://expresscarwash.cl)' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${listUrl}`);
+
+    const cards = parseLasCondesCards(await res.text());
+    const shows: ScrapedShow[] = [];
+
+    await mapLimit(cards, 6, async (card) => {
+      try {
+        const detailRes = await fetch(card.url, {
+          headers: { 'user-agent': 'AfishaBot/1.0 (+https://expresscarwash.cl)' },
+          cache: 'no-store',
+          signal: AbortSignal.timeout(12000),
+        });
+        if (!detailRes.ok) return;
+        const html = await detailRes.text();
+        const events = lasCondesJsonLdEvents(html);
+        const description = metaContent(html, 'og:description') ?? metaContent(html, 'description');
+        const content = html.match(/<div id=["']content_principal["'][^>]*>([\s\S]*?)<\/div>\s*<\/div>/i)?.[1] ?? html;
+        const startsAt =
+          parseLasCondesDateText(htmlText(content), true) ??
+          parseLasCondesDateText(card.dateText ?? '', false) ??
+          lasCondesEventStart(events);
+        const { priceCents, priceText } = lasCondesPrice(events);
+        const sourceUrl = lasCondesTicketUrl(html) ?? card.url;
+        const category = card.category ?? 'teatro';
+
+        shows.push({
+          externalId: card.url,
+          title: card.title,
+          description: description ? description.slice(0, 600) : null,
+          startsAt,
+          venue: 'Teatro Municipal de Las Condes',
+          category,
+          categories: normalizeEventCategories([category, card.title, description].filter(Boolean).join(' ')),
+          priceText,
+          priceCents,
+          currency: 'CLP',
+          sourceUrl,
+          imageUrl: card.imageUrl ?? metaContent(html, 'og:image'),
+        });
+      } catch {
+        // A single stale card or broken detail page should not fail the theater.
+      }
+    });
+
+    return shows;
+  },
+};
+
 // ---- Teatro UC (Facultad de Artes UC) --------------------------------------
 // teatrouc.uc.cl runs The Events Calendar (Modern Tribe), which serves a clean
 // REST feed at /wp-json/tribe/events/v1/events: every event carries an absolute
@@ -460,7 +668,6 @@ const TEATROUC_API = 'https://teatrouc.uc.cl/wp-json/tribe/events/v1/events';
 const TEATROUC_EXCLUDED_TITLE =
   /\b(taller|curso|conversatorio|laboratorio|audici[oó]n|convocatoria|seminario|charla|mesa\s+redonda)\b/i;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // The Events Calendar emits utc_* fields as UTC wall-clock with no zone marker
 // ("2026-06-04 23:00:00"); tag those with Z. start_date / end_date are the venue's
 // Santiago wall clock, read as such via the shared isoToInstant.
@@ -541,11 +748,11 @@ export const teatroUcScraper: TheaterScraper = {
     return shows;
   },
 };
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export const SCRAPERS: Record<string, TheaterScraper> = {
   municipal: municipalScraper,
   gam: gamScraper,
+  lascondes: lasCondesScraper,
   teatrouc: teatroUcScraper,
 };
 
