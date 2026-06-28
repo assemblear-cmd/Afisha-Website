@@ -85,8 +85,9 @@ model Theater {
   name          String
   website       String
   city          String    @default("Santiago")
-  // Venue categories as slugs (e.g. "teatro", "centro-cultural", "club"). A
-  // venue can belong to several, depending on the kind of event it hosts.
+  // Location categories as slugs (see LOCATION_CATEGORIES in src/lib/taxonomy.ts:
+  // "teatro", "sala-de-conciertos", "centro-cultural", "club"…). A venue can
+  // belong to several; these drive DB sorting and the user search/filter.
   categories    String[]  @default([])
   // Scraper adapter key (e.g. "municipal", "gam"); null = no adapter yet.
   adapter       String?
@@ -111,7 +112,13 @@ model Show {
   startsAt    DateTime?
   endsAt      DateTime?
   venue       String?
+  // Raw genre/discipline label straight from the source ("Ópera", "Danza"…).
   category    String?
+  // Controlled event-type categories as slugs (see src/lib/taxonomy.ts:
+  // "concierto", "obra-de-teatro", "exposicion"…). An event can hold several;
+  // these drive DB sorting and the user search/filter. Derived from `category`
+  // via normalizeEventCategories(), or set explicitly by an adapter.
+  categories  String[]  @default([])
   // Raw price label from the source; priceCents is the parsed value when known.
   priceText   String?
   priceCents  Int?

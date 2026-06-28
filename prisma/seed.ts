@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
+import { normalizeEventCategories } from '../src/lib/taxonomy';
+
 const prisma = new PrismaClient();
 
 type TicketSeed = { name: string; priceCents: number; quantity: number; sold: number };
@@ -399,10 +401,10 @@ async function main() {
     adapter: string | null;
     categories: string[];
   }[] = [
-    { slug: 'municipal-santiago', name: 'Teatro Municipal de Santiago', website: 'https://www.municipal.cl', adapter: 'municipal', categories: ['teatro'] },
+    { slug: 'municipal-santiago', name: 'Teatro Municipal de Santiago', website: 'https://www.municipal.cl', adapter: 'municipal', categories: ['teatro', 'sala-de-conciertos'] },
     { slug: 'municipal-las-condes', name: 'Teatro Municipal de Las Condes', website: 'https://www.tmlascondes.cl', adapter: null, categories: ['teatro'] },
-    { slug: 'gam', name: 'Centro Cultural Gabriela Mistral (GAM)', website: 'https://www.gam.cl', adapter: 'gam', categories: ['teatro', 'centro-cultural'] },
-    { slug: 'teatro-uc', name: 'Teatro UC (Universidad Católica)', website: 'https://www.teatrouc.cl', adapter: 'teatrouc', categories: ['teatro'] },
+    { slug: 'gam', name: 'Centro Cultural Gabriela Mistral (GAM)', website: 'https://www.gam.cl', adapter: 'gam', categories: ['centro-cultural', 'teatro'] },
+    { slug: 'teatro-uc', name: 'Teatro UC (Universidad Católica)', website: 'https://www.teatrouc.cl', adapter: 'teatrouc', categories: ['teatro', 'universidad'] },
     { slug: 'teatro-del-puente', name: 'Teatro del Puente', website: 'https://www.teatrodelpuente.cl', adapter: null, categories: ['teatro'] },
     { slug: 'teatro-mori', name: 'Teatro Mori', website: 'https://www.teatromori.cl', adapter: null, categories: ['teatro'] },
     { slug: 'teatro-sidarte', name: 'Teatro Sidarte', website: 'https://www.sidarte.cl', adapter: null, categories: ['teatro'] },
@@ -410,7 +412,7 @@ async function main() {
     { slug: 'teatro-nunoa', name: 'Teatro Municipal de Ñuñoa', website: 'https://www.nunoa.cl/teatro-municipal', adapter: null, categories: ['teatro'] },
     // Venues that program both theater and cultural-center events.
     { slug: 'centro-cultural-ceina', name: 'Centro Cultural CEINA', website: 'https://ceina.cl', adapter: null, categories: ['teatro', 'centro-cultural'] },
-    { slug: 'gran-sala-sinfonica-nacional', name: 'Gran Sala Sinfónica Nacional', website: 'https://www.ceacuchile.cl/nueva-sala', adapter: null, categories: ['teatro', 'centro-cultural'] },
+    { slug: 'gran-sala-sinfonica-nacional', name: 'Gran Sala Sinfónica Nacional', website: 'https://www.ceacuchile.cl/nueva-sala', adapter: null, categories: ['sala-de-conciertos', 'centro-cultural'] },
     // Clubs.
     { slug: 'club-subterraneo', name: 'Club Subterráneo', website: 'https://feverup.com/en/santiago/venue/club-subterraneo', adapter: null, categories: ['club'] },
   ];
@@ -441,6 +443,7 @@ async function main() {
           title: s.title,
           startsAt: s.startsAt,
           category: 'teatro',
+          categories: normalizeEventCategories(s.title),
           priceCents: s.priceCents,
           currency: 'CLP',
           sourceUrl: s.sourceUrl,

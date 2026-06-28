@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { normalizeEventCategories } from '@/lib/taxonomy';
 
 // A single repertoire entry as pulled from a theater's site, before it is
 // persisted as a Show row.
@@ -10,6 +11,9 @@ export interface ScrapedShow {
   endsAt?: Date | null;
   venue?: string | null;
   category?: string | null;
+  // Controlled event-type slugs (see src/lib/taxonomy.ts). Optional: when an
+  // adapter omits it, runScrape derives it from `category`.
+  categories?: string[] | null;
   priceText?: string | null;
   priceCents?: number | null;
   currency?: string;
@@ -597,6 +601,7 @@ export async function runScrape(): Promise<ScrapeResult[]> {
             endsAt: s.endsAt ?? null,
             venue: s.venue ?? null,
             category: s.category ?? 'teatro',
+            categories: s.categories ?? normalizeEventCategories(s.category),
             priceText: s.priceText ?? null,
             priceCents: s.priceCents ?? null,
             currency: s.currency ?? 'CLP',
@@ -612,6 +617,7 @@ export async function runScrape(): Promise<ScrapeResult[]> {
             startsAt: s.startsAt ?? null,
             endsAt: s.endsAt ?? null,
             venue: s.venue ?? null,
+            categories: s.categories ?? normalizeEventCategories(s.category),
             priceText: s.priceText ?? null,
             priceCents: s.priceCents ?? null,
             currency: s.currency ?? 'CLP',
