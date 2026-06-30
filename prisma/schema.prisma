@@ -84,6 +84,10 @@ model Theater {
   slug          String    @unique
   name          String
   website       String
+  // Event listing/detail/source URLs for later source-specific scrapers. `website`
+  // can stay as the official venue page while these point at Fever/Eventbrite/
+  // Bandsintown source pages that actually list events for this location.
+  eventSources  String[]  @default([])
   city          String    @default("Santiago")
   // Location categories as slugs (see LOCATION_CATEGORIES in src/lib/taxonomy.ts:
   // "teatro", "sala-de-conciertos", "centro-cultural", "club"…). A venue can

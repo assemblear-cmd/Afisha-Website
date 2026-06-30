@@ -23,7 +23,7 @@ export interface ScrapedShow {
 
 export interface TheaterScraper {
   key: string;
-  fetchShows(theater: { website: string }): Promise<ScrapedShow[]>;
+  fetchShows(theater: { website: string; eventSources?: string[] }): Promise<ScrapedShow[]>;
 }
 
 // ---- Generic JSON-LD Event extractor --------------------------------------

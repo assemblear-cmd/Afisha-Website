@@ -25,7 +25,16 @@ export async function getUpcomingShows() {
       currency: true,
       sourceUrl: true,
       imageUrl: true,
-      theater: { select: { name: true, slug: true, website: true, city: true, categories: true } },
+      theater: {
+        select: {
+          name: true,
+          slug: true,
+          website: true,
+          eventSources: true,
+          city: true,
+          categories: true,
+        },
+      },
     },
     orderBy: [{ startsAt: 'asc' }],
     take: 200,
@@ -47,6 +56,7 @@ export async function getTheatersWithShows() {
       name: true,
       slug: true,
       website: true,
+      eventSources: true,
       city: true,
       categories: true,
       shows: {

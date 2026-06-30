@@ -21,9 +21,34 @@ export const EVENT_CATEGORIES = [
   'charla', //              лекция
   'obra-de-teatro', //      театральная постановка
   'evento-interactivo', //  интерактивное мероприятие
+  'comedia', //             комедия / стендап
+  'fiesta-y-vida-nocturna', // вечеринка / ночная жизнь
+  'networking', //          нетворкинг / meetup
+  'negocios', //            бизнес
+  'tecnologia', //          технологии
+  'gastronomia', //         еда и напитки
+  'curso-taller', //        курс / мастер-класс
+  'salud-y-bienestar', //   здоровье и wellness
+  'deportes', //            спорт
+  'familia', //             семейные / дети
+  'cine', //                кино
+  'beneficencia', //        благотворительность
+  'religion-espiritualidad', // религия / духовность
   'otros', //               другие
 ] as const;
 export type EventCategory = (typeof EVENT_CATEGORIES)[number];
+
+// The homepage mosaic keeps its original seven-slot rhythm even as the source
+// taxonomy grows for Eventbrite/Fever/Bandsintown imports.
+export const FEATURED_EVENT_CATEGORIES = [
+  'concierto',
+  'festival',
+  'exposicion',
+  'charla',
+  'obra-de-teatro',
+  'evento-interactivo',
+  'otros',
+] satisfies EventCategory[];
 
 // ---- Location categories (Theater.categories) -----------------------------
 export const LOCATION_CATEGORIES = [
@@ -38,6 +63,13 @@ export const LOCATION_CATEGORIES = [
   'restaurante', //         ресторан
   'oficina', //             офис
   'edificio', //            здание
+  'arena', //               арена
+  'sala-de-eventos', //     event hall / venue
+  'centro-de-convenciones', // конференц-центр
+  'hotel', //               отель
+  'parque', //              парк
+  'centro-comercial', //    торговый центр
+  'colegio', //             школа / колледж
   'otros', //               другие
 ] as const;
 export type LocationCategory = (typeof LOCATION_CATEGORIES)[number];
@@ -53,8 +85,21 @@ const EVENT_KEYWORDS: [RegExp, EventCategory][] = [
   [/festival/i, 'festival'],
   [/exposici[óo]n|exhibici[óo]n|muestra|galer[íi]a|artes?\s*visuales|pintura|fotograf/i, 'exposicion'],
   [/charla|conferencia|seminario|conversatorio|coloquio|lectura|ponencia|clase\s*magistral|lanzamiento\s+de\s+libro|presentaci[óo]n\s+de\s+libro|ideas?\s+y\s+pensamiento|convocatoria/i, 'charla'],
-  [/interactiv|inmersiv|experiencia|instalaci[óo]n|laboratorio|taller|juegos?\s+de\s+mesa|b[úu]squeda\s+del\s+tesoro/i, 'evento-interactivo'],
-  [/teatro|obras?\s+(?:de\s+)?teatro|obra\s+de\s+danza|drama|comedia|esc[ée]nic|[óo]pera|ballet|danza|circo|t[íi]teres|monolog|stand[\s-]?up/i, 'obra-de-teatro'],
+  [/interactiv|immersiv|inmersiv|experiencia|instalaci[óo]n|laboratorio|juegos?\s+de\s+mesa|b[úu]squeda\s+del\s+tesoro/i, 'evento-interactivo'],
+  [/teatro|obras?\s+(?:de\s+)?teatro|obra\s+de\s+danza|drama|esc[ée]nic|[óo]pera|ballet|danza|circo|t[íi]teres/i, 'obra-de-teatro'],
+  [/stand[\s-]?up|comedy|comediante|humor|impro/i, 'comedia'],
+  [/party|fiesta|nightlife|discoteca|club night|techno|afterwork|social/i, 'fiesta-y-vida-nocturna'],
+  [/networking|meetup|language exchange|intercambio|alumni|make new friends|comunidad|community/i, 'networking'],
+  [/business|professional|mba|finance|emprend|startup|corporate|empresa|negocios/i, 'negocios'],
+  [/tech|technology|data|ai|inteligencia artificial|cyber|software|science\s*&\s*technology/i, 'tecnologia'],
+  [/food|drink|wine|vino|queso|pizzeria|gastronom|degustaci[óo]n|restaurante/i, 'gastronomia'],
+  [/workshop|class|training|curso|certificaci[óo]n|taller/i, 'curso-taller'],
+  [/health|wellness|medical|mind and body|salud|bienestar|yoga|meditaci[óo]n/i, 'salud-y-bienestar'],
+  [/sport|deport|marathon|running|f[úu]tbol|formula|f1|race/i, 'deportes'],
+  [/family|kids|niñ|infantil|colegio|school/i, 'familia'],
+  [/cinema|cine|film|pel[ií]cula/i, 'cine'],
+  [/charity|causes|benefic|fundaci[óo]n|fraternal|ayuda/i, 'beneficencia'],
+  [/relig|spiritual|dios|iglesia|cristian/i, 'religion-espiritualidad'],
 ];
 
 // Normalize a raw source label into one or more controlled event slugs. Returns
