@@ -2,13 +2,13 @@ import clsx from 'clsx';
 
 // A curated set of on-brand duotone covers. One is picked deterministically from
 // a stable seed (event id / theater name) so each tile keeps a distinct but
-// consistent cover, instead of every card sharing the same coral→ink gradient.
+// consistent cover, instead of every card sharing the same red→ink gradient.
 // Hues stay in a controlled, brand-adjacent set rather than going rainbow.
 const COVERS = [
-  'from-[#F05537] to-[#2A0E4F]', // coral → ink (brand)
+  'from-[#E21B2D] to-[#2A0E4F]', // red → ink (brand)
   'from-[#3EB489] to-[#10403B]', // teal → deep teal
   'from-[#6D5BD0] to-[#241046]', // violet → ink
-  'from-[#F2A03D] to-[#9E2F22]', // amber → rust
+  'from-[#C1121F] to-[#4A0E1B]', // crimson → burgundy
   'from-[#2D9CDB] to-[#16324F]', // sky → navy
   'from-[#E0517E] to-[#3A1136]', // rose → plum
 ];

@@ -14,8 +14,8 @@ const config: Config = {
     extend: {
       colors: {
         coral: {
-          DEFAULT: '#F05537',
-          dark: '#D9442A',
+          DEFAULT: '#E21B2D',
+          dark: '#B91527',
         },
         success: '#3EB489',
         // Semantic tokens backed by CSS variables (see globals.css) so the whole

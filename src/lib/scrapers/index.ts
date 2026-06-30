@@ -371,15 +371,20 @@ export const municipalScraper: TheaterScraper = {
 // ---- Centro Gabriela Mistral (GAM) ----------------------------------------
 // gam.cl is a Django/Wagtail site with no public API, but every show detail
 // page embeds a schema.org Event in JSON-LD. There's no single cartelera page,
-// so we crawl the performing-arts discipline listings, collect detail-page
-// URLs, and run the generic JSON-LD extractor on each. Non-performances (open
-// calls, archive, talks) carry no dated Event and drop out on their own.
+// so we crawl selected programming-section listings, collect detail-page URLs,
+// and run the generic JSON-LD extractor on each. Archive and open-call pages are
+// skipped; pages with no active/upcoming date range drop out.
 
 const GAM_DISCIPLINES: Record<string, string> = {
   teatro: 'Teatro',
   danza: 'Danza',
   'musica-popular': 'Música',
-  musica: 'Música',
+  'musica-clasica': 'Música',
+  'nueva-opera': 'Ópera',
+  'stand-up-comedy': 'Stand up comedy',
+  artesvisuales: 'Exposición',
+  actividades: 'Actividad',
+  ideasypensamiento: 'Charla',
 };
 
 // Listing detail links look like /es/que-hacer-en-gam/<discipline>/<slug>/.
@@ -404,9 +409,21 @@ async function gamDiscoverShowUrls(discipline: string): Promise<string[]> {
   return [...urls];
 }
 
+function isCurrentOrUpcoming(show: ScrapedShow): boolean {
+  const grace = 12 * 60 * 60 * 1000;
+  const threshold = Date.now() - grace;
+  const end = show.endsAt?.getTime();
+  if (end != null && !isNaN(end)) return end >= threshold;
+  const start = show.startsAt?.getTime();
+  return start != null && !isNaN(start) && start >= threshold;
+}
+
 // Each GAM detail page carries one schema.org Event; reuse the generic
-// extractor and keep only pages that yield a dated performance. The category is
-// the discipline section the show was found under (teatro / danza / música).
+// extractor and keep only pages that yield a current/upcoming date or date
+// range. The raw category is the section the show was found under; controlled
+// slugs are derived from the section plus title so broad buckets like
+// "Actividades" can still fill charla / evento-interactivo without noisy
+// description words leaking into unrelated categories.
 export const gamScraper: TheaterScraper = {
   key: 'gam',
   async fetchShows() {
@@ -430,8 +447,12 @@ export const gamScraper: TheaterScraper = {
         return; // a single broken detail page never blocks the others
       }
       const ev = events[0];
-      if (!ev || !ev.startsAt) return; // no dated Event -> not a performance
-      ev.category = byUrl.get(url) ?? 'teatro';
+      if (!ev || !isCurrentOrUpcoming(ev)) return;
+      const category = byUrl.get(url) ?? 'Teatro';
+      ev.category = category;
+      ev.categories = normalizeEventCategories(
+        [category, ev.title].filter(Boolean).join(' ')
+      );
       ev.venue = ev.venue ? decodeEntities(ev.venue) : null;
       shows.push(ev);
     });

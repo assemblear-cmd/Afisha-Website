@@ -3,8 +3,7 @@ import { Container } from '@/components/ui';
 
 export function Footer() {
   return (
-    <footer className="bg-neutral-950 text-white/80">
-      <div aria-hidden className="h-24 bg-gradient-to-b from-surface via-canvas to-neutral-950" />
+    <footer className="border-t border-neutral-800 bg-neutral-950 text-white/80">
       <Container>
         <div className="py-10">
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">

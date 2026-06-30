@@ -49,12 +49,12 @@ export type LocationCategory = (typeof LOCATION_CATEGORIES)[number];
 // `obra-de-teatro`, which is the dominant category for these venues — tune here
 // if a finer split is ever needed.
 const EVENT_KEYWORDS: [RegExp, EventCategory][] = [
-  [/concier|recital|sonata|m[úu]sica|musical|sinf[óo]nic|orquesta|c[áa]mara|jazz|rock|pop|coral/i, 'concierto'],
+  [/concier|recital|sonata|m[úu]sica|musical|sinf[óo]nic|orquesta|c[áa]mara|\bjazz\b|\brock\b|\bpop\b|coral/i, 'concierto'],
   [/festival/i, 'festival'],
   [/exposici[óo]n|exhibici[óo]n|muestra|galer[íi]a|artes?\s*visuales|pintura|fotograf/i, 'exposicion'],
-  [/charla|conferencia|seminario|conversatorio|coloquio|lectura|ponencia|clase\s*magistral/i, 'charla'],
-  [/interactiv|inmersiv|experiencia|instalaci[óo]n/i, 'evento-interactivo'],
-  [/teatro|obra|drama|comedia|esc[ée]nic|[óo]pera|ballet|danza|circo|t[íi]teres|monolog|stand[\s-]?up/i, 'obra-de-teatro'],
+  [/charla|conferencia|seminario|conversatorio|coloquio|lectura|ponencia|clase\s*magistral|lanzamiento\s+de\s+libro|presentaci[óo]n\s+de\s+libro|ideas?\s+y\s+pensamiento|convocatoria/i, 'charla'],
+  [/interactiv|inmersiv|experiencia|instalaci[óo]n|laboratorio|taller|juegos?\s+de\s+mesa|b[úu]squeda\s+del\s+tesoro/i, 'evento-interactivo'],
+  [/teatro|obras?\s+(?:de\s+)?teatro|obra\s+de\s+danza|drama|comedia|esc[ée]nic|[óo]pera|ballet|danza|circo|t[íi]teres|monolog|stand[\s-]?up/i, 'obra-de-teatro'],
 ];
 
 // Normalize a raw source label into one or more controlled event slugs. Returns

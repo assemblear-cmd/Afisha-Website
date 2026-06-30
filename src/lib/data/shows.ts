@@ -3,10 +3,16 @@ import { prisma } from '@/lib/prisma';
 // Eventbrite-style flat feed: upcoming Santiago theater shows from the scraped
 // aggregator, date-sorted. Shows with no known date sort first (TBA).
 export async function getUpcomingShows() {
+  const now = new Date();
+
   return prisma.show.findMany({
     where: {
       isActive: true,
-      OR: [{ startsAt: null }, { startsAt: { gte: new Date() } }],
+      OR: [
+        { startsAt: null, endsAt: null },
+        { startsAt: { gte: now } },
+        { endsAt: { gte: now } },
+      ],
     },
     select: {
       id: true,
@@ -32,6 +38,8 @@ export type ListedShow = Awaited<ReturnType<typeof getUpcomingShows>>[number];
 // own upcoming shows (date-sorted). Theaters with no shows yet are still
 // returned so the page can list them with a "coming soon" placeholder.
 export async function getTheatersWithShows() {
+  const now = new Date();
+
   return prisma.theater.findMany({
     where: { isActive: true },
     select: {
@@ -44,7 +52,11 @@ export async function getTheatersWithShows() {
       shows: {
         where: {
           isActive: true,
-          OR: [{ startsAt: null }, { startsAt: { gte: new Date() } }],
+          OR: [
+            { startsAt: null, endsAt: null },
+            { startsAt: { gte: now } },
+            { endsAt: { gte: now } },
+          ],
         },
         select: {
           id: true,

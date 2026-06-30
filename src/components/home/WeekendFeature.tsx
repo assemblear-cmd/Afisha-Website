@@ -13,18 +13,25 @@ export function WeekendFeature() {
       <Container>
         <Link
           href={weekendEventHref()}
-          className="group relative block min-h-[13rem] overflow-hidden rounded-lg bg-white no-underline ring-coral transition focus:outline-none focus-visible:ring-2 sm:min-h-[17rem]"
+          className="group relative block min-h-[13rem] overflow-hidden rounded-lg bg-white no-underline ring-coral transition focus:outline-none focus-visible:ring-2 dark:bg-neutral-950 sm:min-h-[17rem]"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/images/this-weekend.png"
+            src="/images/this-weekend.jpg"
             alt=""
             loading="lazy"
-            className="absolute inset-0 h-full w-full object-cover object-right-bottom"
+            className="absolute inset-0 h-full w-full object-cover object-right-bottom dark:hidden"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/70 to-white/10" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/this-weekend-dark.png"
+            alt=""
+            loading="lazy"
+            className="absolute inset-0 hidden h-full w-full object-cover object-right dark:block"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/70 to-white/10 dark:from-black/80 dark:via-black/45 dark:to-black/5" />
           <div className="absolute inset-y-0 left-0 flex max-w-xl items-center p-5 sm:p-8">
-            <h2 id="home-weekend-title" className="text-3xl font-extrabold leading-tight text-[#1E0A3C] sm:text-5xl">
+            <h2 id="home-weekend-title" className="text-3xl font-extrabold leading-tight text-[#1E0A3C] dark:text-white sm:text-5xl">
               {nav.weekendCardTitle}
             </h2>
           </div>
