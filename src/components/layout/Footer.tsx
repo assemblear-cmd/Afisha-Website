@@ -3,13 +3,14 @@ import { Container } from '@/components/ui';
 
 export function Footer() {
   return (
-    <footer className="bg-ink text-white/80 mt-16">
+    <footer className="bg-neutral-950 text-white/80">
+      <div aria-hidden className="h-24 bg-gradient-to-b from-surface via-canvas to-neutral-950" />
       <Container>
         <div className="py-10">
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <p className="text-xl font-extrabold text-white">
-                Afish<span className="text-coral">a</span>
+                Donde<span className="text-coral">GO</span>
               </p>
               <p className="mt-2 text-sm text-white/70">Discover events that move you.</p>
             </div>
@@ -54,9 +55,9 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="mt-10 border-t border-white/10 pt-6">
-            <p className="text-xs text-white/50">
-              © 2026 Afisha — demo project. Not affiliated with Eventbrite.
+          <div className="mt-10 border-t border-white/15 pt-6">
+            <p className="text-xs text-white/60">
+              © 2026 DondeGO — demo project. Not affiliated with Eventbrite.
             </p>
           </div>
         </div>

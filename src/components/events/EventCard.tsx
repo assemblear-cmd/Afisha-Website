@@ -18,22 +18,23 @@ export function EventCard({ event }: EventCardProps) {
       : 0;
 
   return (
-    <Link href={`/events/${id}`} className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-coral rounded-xl">
-      <Card className="h-full flex flex-col transition-transform duration-200 group-hover:-translate-y-1">
+    <Link href={`/events/${id}`} className="block min-w-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-coral rounded-xl">
+      <Card className="h-full min-w-0 flex flex-col transition-transform duration-200 group-hover:-translate-y-1">
         {/* Cover image */}
         <div className="aspect-[16/9] w-full overflow-hidden relative">
           <CoverPlaceholder seed={id} glyph={categoryEmoji(category)} />
           {coverImage && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={coverImage}
               alt={title}
-              className="w-full h-full object-cover relative z-10"
+              className="absolute inset-0 z-10 h-full w-full object-cover"
             />
           )}
         </div>
 
         {/* Body */}
-        <div className="p-4 flex flex-col flex-1 gap-1">
+        <div className="min-w-0 p-4 flex flex-col flex-1 gap-1">
           <Badge tone="coral">{categoryLabel(category)}</Badge>
 
           <p className="text-coral text-sm font-semibold mt-1">

@@ -41,7 +41,7 @@ export function CoverPlaceholder({ seed, glyph, className }: CoverPlaceholderPro
       className={clsx('absolute inset-0 overflow-hidden bg-gradient-to-br', cover, className)}
     >
       {/* soft top-left light keeps the fill from reading flat */}
-      <div className="absolute -inset-1/4 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.22),transparent_55%)]" />
+      <div className="absolute inset-0 scale-150 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.22),transparent_55%)]" />
       {glyph && (
         <span className="absolute -bottom-5 -right-3 select-none text-[6rem] leading-none opacity-20 sm:text-[7rem]">
           {glyph}

@@ -51,7 +51,7 @@ export function ThemeToggle() {
       aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
       aria-pressed={isDark}
       title={isDark ? 'Light' : 'Dark'}
-      className="grid h-8 w-8 place-items-center rounded-full text-body transition hover:text-coral"
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[#39364F] transition hover:text-coral"
     >
       <span suppressHydrationWarning>{mounted && isDark ? <SunIcon /> : <MoonIcon />}</span>
     </button>

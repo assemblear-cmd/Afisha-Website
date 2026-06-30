@@ -5,8 +5,8 @@ import { Footer } from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Afisha — Find your next experience',
-    template: '%s · Afisha',
+    default: 'DondeGO — Find your next experience',
+    template: '%s · DondeGO',
   },
   description: 'Discover and book tickets to the best events near you.',
 };

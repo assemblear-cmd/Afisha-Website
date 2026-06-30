@@ -27,14 +27,14 @@ export function LanguageMenu({ current }: { current: Locale }) {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Idioma / Language"
-        className="flex items-center gap-1 text-sm font-medium text-body no-underline hover:text-coral"
+        className="flex items-center gap-1 text-sm font-medium text-[#39364F] no-underline hover:text-coral"
       >
         <span aria-hidden>🌐</span>
         {current.toUpperCase()}

@@ -6,6 +6,7 @@ import { SearchBar } from '@/components/events/SearchBar';
 import { CategoryFilter } from '@/components/events/CategoryFilter';
 import { EventGrid } from '@/components/events/EventGrid';
 import { categoryLabel } from '@/lib/categories';
+import { weekendDateRange } from '@/lib/weekend';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Browse events' };
@@ -16,26 +17,34 @@ interface EventsPageProps {
     city?: string;
     category?: string;
     date?: string;
+    period?: string;
   };
 }
 
 export default async function EventsPage({ searchParams }: EventsPageProps) {
-  const { query, city, category, date } = searchParams;
+  const { query, city, category, date, period } = searchParams;
 
   const now = new Date();
 
   // Build the startsAt gte boundary
   let startsAtGte = now;
+  let startsAtLt: Date | undefined;
+  if (period === 'weekend') {
+    const weekend = weekendDateRange();
+    startsAtGte = weekend.start > now ? weekend.start : now;
+    startsAtLt = weekend.endExclusive;
+  }
   if (date) {
     const parsed = new Date(date);
     if (!isNaN(parsed.getTime()) && parsed > now) {
       startsAtGte = parsed;
+      startsAtLt = undefined;
     }
   }
 
   const where: Prisma.EventWhereInput = {
     isPublished: true,
-    startsAt: { gte: startsAtGte },
+    startsAt: { gte: startsAtGte, ...(startsAtLt ? { lt: startsAtLt } : {}) },
     ...(category ? { category } : {}),
     ...(city ? { city: { contains: city } } : {}),
     ...(query
@@ -61,6 +70,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   if (query) filters.push(`"${query}"`);
   if (city) filters.push(`in ${city}`);
   if (category) filters.push(categoryLabel(category));
+  if (period === 'weekend') filters.push('this weekend');
   if (date) filters.push(`from ${date}`);
 
   return (
