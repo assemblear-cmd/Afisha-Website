@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Container, Card, CoverPlaceholder } from '@/components/ui';
-import { formatDate, formatTime } from '@/lib/format';
+import { formatDate, formatListingPrice, formatTime } from '@/lib/format';
 import { categoryEmoji } from '@/lib/categories';
 import { getTheatersWithShows } from '@/lib/data/shows';
 import { getLocale } from '@/i18n/getLocale';
@@ -15,16 +15,16 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: getDictionary(getLocale()).teatros.metaTitle };
 }
 
-function formatClp(priceCents: number | null, currency: string, freeLabel: string): string {
-  if (priceCents == null) return '';
-  if (priceCents === 0) return freeLabel;
-  return `${new Intl.NumberFormat('es-CL').format(Math.round(priceCents / 100))} ${currency}`;
-}
-
 export default async function TeatrosPage() {
-  const t = getDictionary(getLocale()).teatros;
+  const locale = getLocale();
+  const t = getDictionary(locale).teatros;
   const theaters = await getTheatersWithShows();
   const totalShows = theaters.reduce((n, th) => n + th.shows.length, 0);
+  // Surface theaters with live repertoire above the "coming soon" ones. sort()
+  // is stable, so each group keeps the query's alphabetical order.
+  const orderedTheaters = [...theaters].sort(
+    (a, b) => Number(b.shows.length > 0) - Number(a.shows.length > 0),
+  );
 
   return (
     <main className="min-h-screen bg-surface">
@@ -38,7 +38,7 @@ export default async function TeatrosPage() {
       </div>
 
       <Container className="py-8 flex flex-col gap-10">
-        {theaters.map((theater) => (
+        {orderedTheaters.map((theater) => (
           <section key={theater.id}>
             <div className="mb-3 flex items-baseline justify-between gap-4">
               <h2 className="text-lg font-bold text-ink">{theater.name}</h2>
@@ -55,7 +55,9 @@ export default async function TeatrosPage() {
             </div>
 
             {theater.shows.length === 0 ? (
-              <p className="text-sm text-muted">{t.theaterEmpty}</p>
+              <div className="rounded-xl border border-dashed border-ink/15 bg-white/40 px-4 py-8 text-center">
+                <p className="text-sm text-muted">{t.theaterEmpty}</p>
+              </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {theater.shows.map((s) => (
@@ -75,16 +77,22 @@ export default async function TeatrosPage() {
                       )}
                     </div>
                     <div className="flex flex-1 flex-col gap-1 p-4">
-                      {s.startsAt && (
+                      {s.startsAt ? (
                         <p className="mt-1 text-sm font-semibold text-coral">
-                          {formatDate(s.startsAt.toISOString())} · {formatTime(s.startsAt.toISOString())}
+                          {formatDate(s.startsAt.toISOString(), locale)} · {formatTime(s.startsAt.toISOString(), locale)}
                         </p>
+                      ) : (
+                        <p className="mt-1 text-sm font-medium text-muted">{t.tba}</p>
                       )}
                       <h3 className="mt-1 line-clamp-2 font-semibold leading-snug text-ink">{s.title}</h3>
-                      {s.venue && <p className="text-sm text-muted">{s.venue}</p>}
+                      {s.venue && (
+                        <p className="line-clamp-1 text-sm text-muted" title={s.venue}>
+                          {s.venue}
+                        </p>
+                      )}
                       <div className="mt-auto flex items-center justify-between pt-3">
                         <span className="text-sm font-medium text-ink">
-                          {formatClp(s.priceCents, s.currency, t.free)}
+                          {formatListingPrice(s.priceCents, s.currency, t.free, s.priceText)}
                         </span>
                         {s.sourceUrl && (
                           <a

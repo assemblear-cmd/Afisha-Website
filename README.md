@@ -2,7 +2,7 @@
 
 **Discover and sell tickets to events.** Afisha is an Eventbrite-style MVP — a full‑stack web app where visitors search and book tickets, and organizers publish their own events. Built with Next.js 14, TypeScript, Prisma and Tailwind CSS.
 
-> This is an original demo project. It reproduces the *type* of structure, layout and user flows you'd expect from an event‑ticketing marketplace, with its own brand, placeholder copy and freely‑generated imagery. It is **not affiliated with Eventbrite** and contains none of its code, text or assets.
+> This is an original demo project. It reproduces the *type* of structure, layout and user flows you'd expect from an event‑ticketing marketplace, with its own brand, placeholder copy and freely‑generated imagery.
 
 ---
 
@@ -267,4 +267,4 @@ Agents are invoked with the Task/Agent tool (e.g. *“use the security-reviewer 
 
 ## License
 
-Demo / educational project. Not affiliated with Eventbrite.
+Demo / educational project.

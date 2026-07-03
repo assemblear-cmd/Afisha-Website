@@ -12,11 +12,37 @@ model User {
   email        String   @unique
   passwordHash String
   name         String
-  // role: "visitor" | "organizer"
+  // role: "visitor" (customer) | "organizer" | "admin"
   role         String   @default("visitor")
   createdAt    DateTime @default(now())
   events       Event[]
   orders       Order[]
+
+  tickets                Ticket[]                @relation("TicketOwner")
+  ticketScans            TicketScan[]            @relation("ScannedBy")
+  scannerAccesses        EventScannerAccess[]    @relation("ScannerUser")
+  scannerAccessesCreated EventScannerAccess[]    @relation("ScannerGrantedBy")
+  moderationLogs         EventModerationLog[]
+  promotionOrders        PromotionOrder[]
+  placements             HomepageTilePlacement[]
+  ledgerTransactions     LedgerTransaction[]
+  payoutRequests         PayoutRequest[]         @relation("PayoutOrganizer")
+  payoutsReviewed        PayoutRequest[]         @relation("PayoutReviewer")
+}
+
+// Lifecycle of an organizer-submitted event. Legacy rows (created before the
+// organizer module) default to PUBLISHED; `isPublished` is kept in sync so the
+// existing public queries keep working unchanged.
+enum EventStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  APPROVED
+  PUBLISHED
+  REJECTED
+  CANCELLED
+  ARCHIVED
+  COMPLETED
 }
 
 model Event {
@@ -29,6 +55,9 @@ model Event {
   address     String
   startsAt    DateTime
   endsAt      DateTime
+  // Poster/cover image URL. There is no upload/storage provider in the project
+  // yet, so organizers paste a hosted image URL. TODO: swap for a real storage
+  // provider (S3/Supabase Storage) behind the same field.
   coverImage  String
   isPublished Boolean      @default(true)
   organizer   User         @relation(fields: [organizerId], references: [id])
@@ -36,17 +65,57 @@ model Event {
   ticketTypes TicketType[]
   orders      Order[]
   createdAt   DateTime     @default(now())
+
+  status           EventStatus @default(PUBLISHED)
+  shortDescription String?
+  // Free events sell 0-priced tickets without Stripe; their scanner is a paid
+  // add-on (`scannerAddonPaid`). Paid events always have the scanner enabled.
+  isFree           Boolean     @default(false)
+  scannerAddonPaid Boolean     @default(false)
+  contactName      String?
+  contactEmail     String?
+  contactPhone     String?
+  moderationNotes  String?
+  completedAt      DateTime?
+
+  tickets         Ticket[]
+  ticketScans     TicketScan[]
+  scannerAccesses EventScannerAccess[]
+  moderationLogs  EventModerationLog[]
+  placements      HomepageTilePlacement[]
+  promotionOrders PromotionOrder[]
+  ledgerEntries   LedgerTransaction[]
+  payoutRequests  PayoutRequest[]
+
+  @@index([status, startsAt])
+}
+
+enum TicketTypeStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  SOLD_OUT
+  ARCHIVED
 }
 
 model TicketType {
   id         String      @id @default(cuid())
   name       String
+  // Price in minor units: cents for USD (legacy demo data), whole pesos for CLP.
   priceCents Int
   quantity   Int
   sold       Int         @default(0)
   event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId    String
   orderItems OrderItem[]
+
+  description   String?
+  currency      String           @default("CLP")
+  perOrderLimit Int?
+  salesStartAt  DateTime?
+  salesEndAt    DateTime?
+  status        TicketTypeStatus @default(ACTIVE)
+  tickets       Ticket[]
 }
 
 model Order {
@@ -54,7 +123,9 @@ model Order {
   buyerName  String
   buyerEmail String
   totalCents Int
-  // status: "paid"
+  // status: legacy "paid" plus the new flow's "PENDING" | "PAID" | "FAILED" |
+  // "CANCELLED" | "REFUNDED". Payment truth is confirmed by the Stripe webhook,
+  // never by the success redirect.
   status     String      @default("paid")
   event      Event       @relation(fields: [eventId], references: [id])
   eventId    String
@@ -62,6 +133,12 @@ model Order {
   userId     String?
   items      OrderItem[]
   createdAt  DateTime    @default(now())
+
+  currency String    @default("USD")
+  payment  Payment?
+  tickets  Ticket[]
+
+  @@index([eventId, status])
 }
 
 model OrderItem {
@@ -72,6 +149,351 @@ model OrderItem {
   ticketTypeId   String
   quantity       Int
   unitPriceCents Int
+  tickets        Ticket[]
+}
+
+// --- Organizer module: tickets, scanning, promotion, payments, ledger --------
+
+enum TicketStatus {
+  ISSUED
+  CHECKED_IN
+  CANCELLED
+  REFUNDED
+  EXPIRED
+  INVALIDATED
+}
+
+model Ticket {
+  id            String       @id @default(cuid())
+  // Unpredictable random token embedded in the QR code. Reveals no buyer data.
+  token         String       @unique
+  order         Order        @relation(fields: [orderId], references: [id])
+  orderId       String
+  orderItem     OrderItem    @relation(fields: [orderItemId], references: [id])
+  orderItemId   String
+  event         Event        @relation(fields: [eventId], references: [id])
+  eventId       String
+  ticketType    TicketType   @relation(fields: [ticketTypeId], references: [id])
+  ticketTypeId  String
+  owner         User?        @relation("TicketOwner", fields: [ownerUserId], references: [id])
+  ownerUserId   String?
+  attendeeName  String?
+  attendeeEmail String?
+  status        TicketStatus @default(ISSUED)
+  checkedInAt   DateTime?
+  scans         TicketScan[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([eventId, status])
+  @@index([ownerUserId])
+}
+
+enum ScanResult {
+  VALID
+  ALREADY_USED
+  INVALID
+  CANCELLED
+  REFUNDED
+  EXPIRED
+  EVENT_MISMATCH
+  NO_ACCESS
+}
+
+model TicketScan {
+  id          String     @id @default(cuid())
+  ticket      Ticket?    @relation(fields: [ticketId], references: [id])
+  ticketId    String?
+  event       Event      @relation(fields: [eventId], references: [id])
+  eventId     String
+  scannedBy   User       @relation("ScannedBy", fields: [scannedById], references: [id])
+  scannedById String
+  result      ScanResult
+  deviceInfo  String?
+  notes       String?
+  createdAt   DateTime   @default(now())
+
+  @@index([eventId, createdAt])
+}
+
+enum ScannerAccessStatus {
+  INVITED
+  ACTIVE
+  REVOKED
+}
+
+// Event-level staff access granted by email. If no user exists yet the row
+// stays INVITED and is linked to the account on their first scanner use.
+model EventScannerAccess {
+  id          String              @id @default(cuid())
+  event       Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId     String
+  email       String
+  user        User?               @relation("ScannerUser", fields: [userId], references: [id])
+  userId      String?
+  accessType  String              @default("SCANNER")
+  status      ScannerAccessStatus @default(INVITED)
+  createdBy   User                @relation("ScannerGrantedBy", fields: [createdById], references: [id])
+  createdById String
+  createdAt   DateTime            @default(now())
+  revokedAt   DateTime?
+
+  @@unique([eventId, email])
+  @@index([email])
+}
+
+model EventModerationLog {
+  id        String   @id @default(cuid())
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String
+  actor     User     @relation(fields: [actorId], references: [id])
+  actorId   String
+  action    String
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([eventId, createdAt])
+}
+
+// --- Homepage paid tiles ------------------------------------------------------
+
+model HomepageTile {
+  id             String                  @id @default(cuid())
+  // 1..7, matching the homepage mosaic slots (1 = hero).
+  position       Int                     @unique
+  name           String
+  description    String?
+  hourlyPriceClp Int
+  isActive       Boolean                 @default(true)
+  placements     HomepageTilePlacement[]
+}
+
+enum PlacementStatus {
+  AVAILABLE
+  HELD
+  PENDING_PAYMENT
+  PAID
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  LIVE
+  EXPIRED
+  CANCELLED
+}
+
+model HomepageTilePlacement {
+  id            String              @id @default(cuid())
+  tile          HomepageTile        @relation(fields: [tileId], references: [id])
+  tileId        String
+  event         Event               @relation(fields: [eventId], references: [id])
+  eventId       String
+  organizer     User                @relation(fields: [organizerId], references: [id])
+  organizerId   String
+  startAt       DateTime
+  endAt         DateTime
+  hours         Int
+  // Snapshot of the pricing at purchase time (all CLP, 1 token = 1 CLP).
+  basePriceClp  Int
+  discountPct   Int                 @default(0)
+  totalPriceClp Int
+  status        PlacementStatus     @default(PENDING_PAYMENT)
+  adminNotes    String?
+  orderItem     PromotionOrderItem?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  // Overlap protection is enforced in a transaction that locks the tile row.
+  // TODO: add a Postgres EXCLUDE USING gist constraint (btree_gist) via raw
+  // SQL once the project adopts prisma migrate (it currently uses `db push`).
+  @@index([tileId, startAt, endAt])
+  @@index([status])
+}
+
+// --- Promo services & promotion orders ----------------------------------------
+
+model PromoService {
+  id          String               @id @default(cuid())
+  // Stable code: "instagram_post" | "instagram_story" | "telegram_repost" |
+  // "scanner_addon".
+  code        String               @unique
+  name        String
+  description String?
+  priceClp    Int
+  isActive    Boolean              @default(true)
+  sortOrder   Int                  @default(0)
+  orderItems  PromotionOrderItem[]
+}
+
+enum PromoRequestStatus {
+  REQUESTED
+  PENDING_PAYMENT
+  PAID
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  FULFILLED
+  CANCELLED
+}
+
+// One promotion purchase: any mix of a homepage tile placement and promo
+// services, paid in a single Stripe Checkout session.
+model PromotionOrder {
+  id          String               @id @default(cuid())
+  organizer   User                 @relation(fields: [organizerId], references: [id])
+  organizerId String
+  event       Event                @relation(fields: [eventId], references: [id])
+  eventId     String
+  totalClp    Int
+  currency    String               @default("CLP")
+  status      PromoRequestStatus   @default(PENDING_PAYMENT)
+  items       PromotionOrderItem[]
+  payment     Payment?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([organizerId, status])
+}
+
+enum PromotionItemKind {
+  TILE_PLACEMENT
+  PROMO_SERVICE
+}
+
+model PromotionOrderItem {
+  id             String                 @id @default(cuid())
+  order          PromotionOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId        String
+  kind           PromotionItemKind
+  promoService   PromoService?          @relation(fields: [promoServiceId], references: [id])
+  promoServiceId String?
+  placement      HomepageTilePlacement? @relation(fields: [placementId], references: [id])
+  placementId    String?                @unique
+  unitPriceClp   Int
+  status         PromoRequestStatus     @default(PENDING_PAYMENT)
+  adminNotes     String?
+  fulfilledAt    DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+}
+
+// --- Payments (Stripe) ----------------------------------------------------------
+
+enum PaymentStatus {
+  PENDING
+  REQUIRES_ACTION
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentKind {
+  TICKET_ORDER
+  PROMOTION_ORDER
+}
+
+model Payment {
+  id                      String          @id @default(cuid())
+  kind                    PaymentKind
+  order                   Order?          @relation(fields: [orderId], references: [id])
+  orderId                 String?         @unique
+  promotionOrder          PromotionOrder? @relation(fields: [promotionOrderId], references: [id])
+  promotionOrderId        String?         @unique
+  provider                String          @default("stripe")
+  providerSessionId       String?         @unique
+  providerPaymentIntentId String?
+  // Minor units (CLP: whole pesos).
+  amountCents             Int
+  currency                String
+  status                  PaymentStatus   @default(PENDING)
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  @@index([status])
+}
+
+// Processed webhook events, keyed by the provider's event id, so retried
+// deliveries are idempotent and never double-apply ledger credits.
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String   @default("stripe")
+  externalId  String
+  type        String
+  processedAt DateTime @default(now())
+
+  @@unique([provider, externalId])
+}
+
+// --- Financial ledger & payouts -------------------------------------------------
+
+enum LedgerType {
+  TICKET_SALE_GROSS
+  PLATFORM_COMMISSION
+  ORGANIZER_NET_CREDIT
+  REFUND_DEBIT
+  PAYOUT_HOLD
+  PAYOUT_RELEASE
+  PAYOUT_PAID
+  ADJUSTMENT
+}
+
+// Internal CLP token ledger: 1 token = 1 CLP. Purely an accounting
+// representation of organizer balances — not a currency or payment instrument.
+// Signed amounts: credits positive, debits negative. `idempotencyKey` makes
+// webhook-driven postings replay-safe.
+model LedgerTransaction {
+  id              String         @id @default(cuid())
+  organizer       User           @relation(fields: [organizerId], references: [id])
+  organizerId     String
+  event           Event?         @relation(fields: [eventId], references: [id])
+  eventId         String?
+  type            LedgerType
+  amountClp       Int
+  currency        String         @default("CLP")
+  orderId         String?
+  payoutRequest   PayoutRequest? @relation(fields: [payoutRequestId], references: [id])
+  payoutRequestId String?
+  idempotencyKey  String?        @unique
+  description     String?
+  createdAt       DateTime       @default(now())
+
+  @@index([organizerId, createdAt])
+  @@index([eventId, type])
+}
+
+enum PayoutStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  PROCESSING
+  PAID
+  REJECTED
+  CANCELLED
+  FAILED
+}
+
+// Manual payout workflow: organizer requests after Event.COMPLETED, admin
+// approves and marks paid. TODO: Stripe Connect onboarding + automated payouts.
+model PayoutRequest {
+  id            String              @id @default(cuid())
+  organizer     User                @relation("PayoutOrganizer", fields: [organizerId], references: [id])
+  organizerId   String
+  event         Event               @relation(fields: [eventId], references: [id])
+  eventId       String
+  amountClp     Int
+  status        PayoutStatus        @default(PENDING)
+  notes         String?
+  adminNotes    String?
+  reviewedBy    User?               @relation("PayoutReviewer", fields: [reviewedById], references: [id])
+  reviewedById  String?
+  paidAt        DateTime?
+  ledgerEntries LedgerTransaction[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([organizerId, status])
+  @@index([status])
 }
 
 // --- Scraped theater repertoire (the daily-updated aggregator) --------------

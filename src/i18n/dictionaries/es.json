@@ -1,9 +1,11 @@
 {
   "nav": {
     "findEvents": "Descubrir eventos",
+    "calendar": "Calendario",
     "teatros": "Teatros",
     "createEvent": "Crear evento",
     "dashboard": "Panel",
+    "myEvents": "Mis eventos",
     "login": "Iniciar sesión",
     "signup": "Registrarse",
     "logout": "Cerrar sesión",
@@ -39,6 +41,46 @@
     "tickets": "Entradas",
     "theatersCount": "teatros",
     "theaterEmpty": "Repertorio próximamente.",
-    "officialSite": "Sitio oficial"
+    "officialSite": "Sitio oficial",
+    "tba": "Fecha por confirmar"
+  },
+  "calendar": {
+    "metaTitle": "Calendario de eventos en Santiago — Afisha",
+    "title": "Calendario de eventos en Santiago",
+    "eventsCount": "eventos",
+    "byVenue": "Ver por lugar",
+    "categoriesAria": "Filtrar calendario por categoría",
+    "allCategories": "Todas",
+    "empty": "No hay eventos para esta categoría por ahora.",
+    "free": "Gratis",
+    "tickets": "Entradas",
+    "tba": "Hora por confirmar"
+  },
+  "weekend": {
+    "metaTitle": "Eventos este fin de semana en Santiago — Afisha",
+    "title": "Eventos este fin de semana",
+    "eventSingular": "evento",
+    "eventsCount": "eventos",
+    "fullCalendar": "Ver calendario completo",
+    "categoriesAria": "Filtrar eventos del fin de semana por categoría",
+    "allCategories": "Todos",
+    "emptyTitle": "No hay eventos para este filtro.",
+    "emptyText": "Prueba otra categoría o revisa el calendario completo.",
+    "free": "Gratis",
+    "tba": "Hora por confirmar"
+  },
+  "datePage": {
+    "metaTitle": "Eventos por día — Afisha",
+    "eyebrow": "Eventos por fecha",
+    "eventSingular": "evento",
+    "eventsCount": "eventos",
+    "fullCalendar": "Ver calendario completo",
+    "pickDateAria": "Elegir fecha",
+    "categoriesAria": "Filtrar eventos del día por categoría",
+    "allCategories": "Todos",
+    "emptyTitle": "No hay eventos para este día.",
+    "emptyText": "Prueba otra categoría o vuelve al calendario completo.",
+    "free": "Gratis",
+    "tba": "Hora por confirmar"
   }
 }

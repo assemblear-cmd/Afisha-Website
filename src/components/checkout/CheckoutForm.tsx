@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { formatPrice } from '@/lib/format';
+import { formatTicketPrice } from '@/lib/money';
 import { isValidCardNumber, isValidExpiry, isValidCvc } from '@/lib/validations';
 import { Button, Badge, Card, Field, Input, Label } from '@/components/ui';
 
@@ -9,6 +9,7 @@ interface SelectionItem {
   ticketTypeId: string;
   name: string;
   priceCents: number;
+  currency?: string;
   quantity: number;
 }
 
@@ -45,6 +46,7 @@ export function CheckoutForm({
   const [loading, setLoading] = useState(false);
 
   const total = selection.reduce((sum, s) => sum + s.priceCents * s.quantity, 0);
+  const currency = selection[0]?.currency ?? 'CLP';
 
   function validate(): FormErrors {
     const errs: FormErrors = {};
@@ -225,7 +227,7 @@ export function CheckoutForm({
         className="w-full"
         disabled={loading}
       >
-        {loading ? 'Processing payment…' : `Pay ${formatPrice(total)}`}
+        {loading ? 'Processing payment…' : `Pay ${formatTicketPrice(total, currency)}`}
       </Button>
     </form>
   );

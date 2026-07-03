@@ -1,9 +1,11 @@
 {
   "nav": {
     "findEvents": "Find events",
+    "calendar": "Calendar",
     "teatros": "Theaters",
     "createEvent": "Create event",
     "dashboard": "Dashboard",
+    "myEvents": "My events",
     "login": "Log in",
     "signup": "Sign up",
     "logout": "Log out",
@@ -39,6 +41,46 @@
     "tickets": "Tickets",
     "theatersCount": "theaters",
     "theaterEmpty": "Repertoire coming soon.",
-    "officialSite": "Official site"
+    "officialSite": "Official site",
+    "tba": "Date TBA"
+  },
+  "calendar": {
+    "metaTitle": "Santiago Events Calendar — Afisha",
+    "title": "Santiago Events Calendar",
+    "eventsCount": "events",
+    "byVenue": "View by venue",
+    "categoriesAria": "Filter calendar by category",
+    "allCategories": "All",
+    "empty": "No events in this category yet.",
+    "free": "Free",
+    "tickets": "Tickets",
+    "tba": "Time TBA"
+  },
+  "weekend": {
+    "metaTitle": "This Weekend in Santiago — Afisha",
+    "title": "This Weekend in Santiago",
+    "eventSingular": "event",
+    "eventsCount": "events",
+    "fullCalendar": "See full calendar",
+    "categoriesAria": "Filter weekend events by category",
+    "allCategories": "All",
+    "emptyTitle": "No events for this filter.",
+    "emptyText": "Try another category or check the full calendar.",
+    "free": "Free",
+    "tba": "Time TBA"
+  },
+  "datePage": {
+    "metaTitle": "Events by Date — Afisha",
+    "eyebrow": "Events by date",
+    "eventSingular": "event",
+    "eventsCount": "events",
+    "fullCalendar": "See full calendar",
+    "pickDateAria": "Pick a date",
+    "categoriesAria": "Filter day events by category",
+    "allCategories": "All",
+    "emptyTitle": "No events for this day.",
+    "emptyText": "Try another category or return to the full calendar.",
+    "free": "Free",
+    "tba": "Time TBA"
   }
 }

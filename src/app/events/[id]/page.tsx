@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { Container, Badge, Card, CoverPlaceholder } from '@/components/ui';
-import { TicketSelector } from '@/components/events/TicketSelector';
+import { TicketPurchase } from '@/components/events/TicketPurchase';
 import { categoryLabel, categoryEmoji } from '@/lib/categories';
 import { formatDateTime } from '@/lib/format';
 
@@ -15,9 +15,9 @@ interface EventPageProps {
 export async function generateMetadata({ params }: EventPageProps): Promise<Metadata> {
   const event = await prisma.event.findUnique({
     where: { id: params.id },
-    select: { title: true },
+    select: { title: true, status: true, isPublished: true },
   });
-  return { title: event?.title ?? 'Event' };
+  return { title: event?.status === 'PUBLISHED' && event.isPublished ? event.title : 'Event' };
 }
 
 export default async function EventPage({ params }: EventPageProps) {
@@ -29,7 +29,7 @@ export default async function EventPage({ params }: EventPageProps) {
     },
   });
 
-  if (!event) notFound();
+  if (!event || event.status !== 'PUBLISHED' || !event.isPublished) notFound();
 
   const {
     id,
@@ -104,7 +104,20 @@ export default async function EventPage({ params }: EventPageProps) {
           <div className="lg:sticky lg:top-24 self-start">
             <Card className="p-5">
               <h2 className="text-lg font-bold text-ink mb-4">Tickets</h2>
-              <TicketSelector eventId={id} ticketTypes={ticketTypes} />
+              <TicketPurchase
+                eventId={id}
+                ticketTypes={ticketTypes
+                  .filter((tt) => tt.status === 'ACTIVE' || tt.status === 'SOLD_OUT')
+                  .map((tt) => ({
+                    id: tt.id,
+                    name: tt.name,
+                    description: tt.description,
+                    priceCents: tt.priceCents,
+                    currency: tt.currency,
+                    remaining: tt.status === 'SOLD_OUT' ? 0 : tt.quantity - tt.sold,
+                    perOrderLimit: tt.perOrderLimit,
+                  }))}
+              />
             </Card>
           </div>
         </div>

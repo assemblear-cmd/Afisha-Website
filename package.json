@@ -16,6 +16,9 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:sync-theaters": "tsx prisma/sync-theaters.ts",
+    "db:sync-commerce": "tsx prisma/sync-commerce.ts",
+    "db:scrape": "tsx prisma/run-scrape.ts",
+    "db:cleanup-events": "tsx prisma/cleanup-events.ts",
     "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
     "setup": "prisma db push && tsx prisma/seed.ts"
   },
@@ -27,9 +30,12 @@
     "bcryptjs": "2.4.3",
     "clsx": "2.1.1",
     "jose": "5.9.6",
+    "jsqr": "^1.4.0",
     "next": "14.2.18",
+    "qrcode": "^1.5.4",
     "react": "18.3.1",
     "react-dom": "18.3.1",
+    "stripe": "^22.3.0",
     "zod": "3.23.8"
   },
   "devDependencies": {
@@ -38,6 +44,7 @@
     "@testing-library/react": "16.0.1",
     "@types/bcryptjs": "2.4.6",
     "@types/node": "22.9.0",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.3.3",

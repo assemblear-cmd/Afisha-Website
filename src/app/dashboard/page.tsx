@@ -1,12 +1,14 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { formatDateTime } from '@/lib/format';
-import { Badge, Card, Container, LinkButton } from '@/components/ui';
+import { Card, Container, LinkButton } from '@/components/ui';
+import { StatusBadge } from '@/components/organizer/StatusBadge';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Dashboard' };
+export const metadata: Metadata = { title: 'My events' };
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -49,7 +51,7 @@ export default async function DashboardPage() {
   return (
     <Container className="py-10">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold text-ink">Your events</h1>
+        <h1 className="text-2xl font-bold text-ink">My events</h1>
         <LinkButton href="/dashboard/events/new" variant="primary">
           Create event
         </LinkButton>
@@ -73,12 +75,12 @@ export default async function DashboardPage() {
               <Card key={event.id} className="p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex-1 min-w-0">
-                    <a
-                      href={`/events/${event.id}`}
+                    <Link
+                      href={`/dashboard/events/${event.id}`}
                       className="font-semibold text-ink hover:text-coral transition truncate block"
                     >
                       {event.title}
-                    </a>
+                    </Link>
                     <p className="text-sm text-muted mt-0.5">
                       {formatDateTime(event.startsAt)} · {event.city}
                     </p>
@@ -97,9 +99,8 @@ export default async function DashboardPage() {
                       <p className="font-semibold text-ink">{event._count.orders}</p>
                       <p className="text-muted">Orders</p>
                     </div>
-                    <Badge tone={pct >= 100 ? 'coral' : pct >= 75 ? 'success' : 'default'}>
-                      {pct}% sold
-                    </Badge>
+                    <StatusBadge status={event.status} />
+                    <span className="text-muted">{pct}% sold</span>
                   </div>
                 </div>
               </Card>

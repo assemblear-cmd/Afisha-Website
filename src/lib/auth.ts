@@ -6,12 +6,20 @@ export const COOKIE_NAME = 'afisha_token';
 
 const secret = new TextEncoder().encode(process.env.AUTH_SECRET || 'dev-secret');
 
+// "visitor" is the customer role. "admin" accounts are created by seed or
+// directly in the DB — registration never accepts the admin role.
+export type UserRole = 'visitor' | 'organizer' | 'admin';
+
 export type SessionUser = {
   id: string;
   email: string;
   name: string;
-  role: 'visitor' | 'organizer';
+  role: UserRole;
 };
+
+function normalizeRole(role: unknown): UserRole {
+  return role === 'organizer' || role === 'admin' ? role : 'visitor';
+}
 
 export async function hashPassword(pw: string): Promise<string> {
   return bcrypt.hash(pw, 10);
@@ -36,7 +44,7 @@ export async function verifyToken(token: string): Promise<SessionUser | null> {
       id: String(payload.id),
       email: String(payload.email),
       name: String(payload.name),
-      role: payload.role === 'organizer' ? 'organizer' : 'visitor',
+      role: normalizeRole(payload.role),
     };
   } catch {
     return null;

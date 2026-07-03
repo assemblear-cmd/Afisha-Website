@@ -44,9 +44,10 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
 
   const where: Prisma.EventWhereInput = {
     isPublished: true,
+    status: 'PUBLISHED',
     startsAt: { gte: startsAtGte, ...(startsAtLt ? { lt: startsAtLt } : {}) },
     ...(category ? { category } : {}),
-    ...(city ? { city: { contains: city } } : {}),
+    city: { contains: city ?? 'Santiago' },
     ...(query
       ? {
           OR: [

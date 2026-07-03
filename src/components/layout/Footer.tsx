@@ -55,9 +55,7 @@ export function Footer() {
           </div>
 
           <div className="mt-10 border-t border-white/15 pt-6">
-            <p className="text-xs text-white/60">
-              © 2026 DondeGO — demo project. Not affiliated with Eventbrite.
-            </p>
+            <p className="text-xs text-white/60">© 2026 DondeGO — demo project.</p>
           </div>
         </div>
       </Container>

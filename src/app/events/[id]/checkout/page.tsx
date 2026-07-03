@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
-import { formatPrice, formatDateTime } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
+import { formatTicketPrice } from '@/lib/money';
 import { Card, Container, LinkButton } from '@/components/ui';
 import { CheckoutForm } from '@/components/checkout/CheckoutForm';
 
@@ -20,7 +21,7 @@ export default async function CheckoutPage({ params, searchParams }: PageProps) 
     include: { ticketTypes: true },
   });
 
-  if (!event) notFound();
+  if (!event || event.status !== 'PUBLISHED' || !event.isPublished) notFound();
 
   // Parse items query param: "ticketTypeId:qty,ticketTypeId:qty"
   const rawItems = searchParams.items ?? '';
@@ -28,6 +29,7 @@ export default async function CheckoutPage({ params, searchParams }: PageProps) 
     ticketTypeId: string;
     name: string;
     priceCents: number;
+    currency: string;
     quantity: number;
   };
 
@@ -43,11 +45,12 @@ export default async function CheckoutPage({ params, searchParams }: PageProps) 
       if (!tt) return [];
       const remaining = tt.quantity - tt.sold;
       if (qty > remaining) return [];
-      return [{ ticketTypeId: tt.id, name: tt.name, priceCents: tt.priceCents, quantity: qty }];
+      return [{ ticketTypeId: tt.id, name: tt.name, priceCents: tt.priceCents, currency: tt.currency, quantity: qty }];
     });
 
   const user = await getCurrentUser();
   const total = selection.reduce((sum, s) => sum + s.priceCents * s.quantity, 0);
+  const currency = selection[0]?.currency ?? 'CLP';
 
   if (selection.length === 0) {
     return (
@@ -86,14 +89,14 @@ export default async function CheckoutPage({ params, searchParams }: PageProps) 
                   <span>
                     {s.quantity} × {s.name}
                   </span>
-                  <span>{formatPrice(s.quantity * s.priceCents)}</span>
+                  <span>{formatTicketPrice(s.quantity * s.priceCents, s.currency)}</span>
                 </li>
               ))}
             </ul>
             <hr className="border-ink/10" />
             <div className="flex justify-between font-semibold text-ink">
               <span>Total</span>
-              <span>{formatPrice(total)}</span>
+              <span>{formatTicketPrice(total, currency)}</span>
             </div>
           </Card>
         </div>

@@ -44,7 +44,11 @@ export async function POST(req: NextRequest) {
 
   // Load ticket types from DB — prices are ALWAYS re-derived from DB rows.
   const dbTicketTypes = await prisma.ticketType.findMany({
-    where: { id: { in: ticketTypeIds }, eventId },
+    where: {
+      id: { in: ticketTypeIds },
+      eventId,
+      event: { status: 'PUBLISHED', isPublished: true },
+    },
   });
 
   if (dbTicketTypes.length !== ticketTypeIds.length) {
@@ -79,7 +83,11 @@ export async function POST(req: NextRequest) {
     const order = await prisma.$transaction(async (tx) => {
       // Re-check availability inside the transaction on fresh rows.
       const freshTicketTypes = await tx.ticketType.findMany({
-        where: { id: { in: ticketTypeIds }, eventId },
+        where: {
+          id: { in: ticketTypeIds },
+          eventId,
+          event: { status: 'PUBLISHED', isPublished: true },
+        },
       });
 
       for (const item of activeItems) {

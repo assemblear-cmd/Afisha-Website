@@ -5,7 +5,8 @@ import { CoverPlaceholder } from '@/components/ui/CoverPlaceholder';
 import { getLocale } from '@/i18n/getLocale';
 import { eventCategoryLabel, getHomeNav } from '@/i18n/homeNav';
 import type { ListedShow } from '@/lib/data/shows';
-import { EVENT_CATEGORIES, type EventCategory } from '@/lib/taxonomy';
+import type { PromotedTile } from '@/lib/promotion/homepage';
+import { FEATURED_EVENT_CATEGORIES, type EventCategory } from '@/lib/taxonomy';
 
 const EVENT_CATEGORY_EMOJI: Record<string, string> = {
   concierto: '🎵',
@@ -35,25 +36,63 @@ type MosaicTile =
   | { kind: 'category'; category: EventCategory };
 
 function buildCategoryMosaic(items: ListedShow[]): MosaicTile[] {
-  const used = new Set<string>();
+  const slots = FEATURED_EVENT_CATEGORIES.length;
 
-  return EVENT_CATEGORIES.map((category) => {
-    const show = items.find((item) => !used.has(item.id) && item.categories.includes(category));
-    if (show) {
-      used.add(show.id);
-      return { kind: 'show', category, show };
+  const counts = new Map<EventCategory, number>();
+  for (const item of items) {
+    for (const category of FEATURED_EVENT_CATEGORIES) {
+      if (item.categories.includes(category)) {
+        counts.set(category, (counts.get(category) ?? 0) + 1);
+      }
     }
-    return { kind: 'category', category };
-  });
+  }
+
+  // Only categories that actually have events, busiest first (stable sort
+  // keeps the canonical order for ties).
+  const ordered = [...FEATURED_EVENT_CATEGORIES]
+    .filter((category) => (counts.get(category) ?? 0) > 0)
+    .sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0));
+
+  const used = new Set<string>();
+  const tiles: MosaicTile[] = [];
+  for (const category of ordered) {
+    if (tiles.length >= slots) break;
+    const show = items.find((item) => !used.has(item.id) && item.categories.includes(category));
+    if (!show) continue;
+    used.add(show.id);
+    tiles.push({ kind: 'show', category, show });
+  }
+
+  // Backfill leftover slots with more real events instead of empty category
+  // tiles, so the grid never advertises a category without content.
+  for (const item of items) {
+    if (tiles.length >= slots) break;
+    if (used.has(item.id)) continue;
+    used.add(item.id);
+    const category =
+      FEATURED_EVENT_CATEGORIES.find((c) => item.categories.includes(c)) ?? 'otros';
+    tiles.push({ kind: 'show', category, show: item });
+  }
+
+  return tiles;
 }
 
-// Diversified event mosaic under the date block: one slot per canonical event
-// category. Real shows are used where available; empty categories still render a
-// category tile so the grid always occupies the full horizontal rhythm.
-export function Mosaic({ items }: { items: ListedShow[] }) {
+// Diversified event mosaic under the date block: one slot per event category
+// that has upcoming events (busiest categories first), backfilled with more
+// events so the grid keeps its full horizontal rhythm.
+export function Mosaic({
+  items,
+  promoted = [],
+}: {
+  items: ListedShow[];
+  // Paid tile placements keyed by mosaic position (1..7); slots without an
+  // active placement fall back to the normal category/show tile.
+  promoted?: PromotedTile[];
+}) {
   const locale = getLocale();
   const nav = getHomeNav(locale);
   const tiles = buildCategoryMosaic(items);
+  const promotedByPosition = new Map(promoted.map((tile) => [tile.position, tile]));
   if (tiles.length === 0) return null;
 
   return (
@@ -73,6 +112,38 @@ export function Mosaic({ items }: { items: ListedShow[] }) {
 
         <div className="grid grid-cols-2 gap-3 sm:auto-rows-[180px] sm:grid-flow-dense lg:grid-cols-4">
           {tiles.map((tile, i) => {
+            const promo = promotedByPosition.get(i + 1);
+            if (promo) {
+              return (
+                <a
+                  key={`promo-${promo.position}`}
+                  href={`/events/${promo.eventId}`}
+                  className={clsx(
+                    'group relative min-h-[10.75rem] overflow-hidden rounded-lg bg-surface no-underline sm:aspect-auto',
+                    i === 0 && 'col-span-2',
+                    SPANS[i % SPANS.length]
+                  )}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={promo.coverImage}
+                    alt=""
+                    loading="lazy"
+                    className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-3">
+                    <span className="mb-1 inline-block rounded bg-coral px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                      Promoted
+                    </span>
+                    <h3 className="line-clamp-2 text-sm font-bold leading-tight text-white sm:text-base">
+                      {promo.title}
+                    </h3>
+                    <p className="mt-0.5 line-clamp-1 text-xs text-white/80">{promo.venue}</p>
+                  </div>
+                </a>
+              );
+            }
             const cat = tile.category;
             const isShow = tile.kind === 'show';
             const show = isShow ? tile.show : null;
@@ -87,6 +158,7 @@ export function Mosaic({ items }: { items: ListedShow[] }) {
                 {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 className={clsx(
                   'group relative min-h-[10.75rem] overflow-hidden rounded-lg bg-surface no-underline sm:aspect-auto',
+                  i === 0 && 'col-span-2',
                   SPANS[i % SPANS.length]
                 )}
               >

@@ -76,16 +76,7 @@ function nodeToShow(node: any, pageUrl: string): ScrapedShow | null {
   };
 }
 
-export async function extractJsonLdEvents(pageUrl: string): Promise<ScrapedShow[]> {
-  const res = await fetch(pageUrl, {
-    headers: {
-      'user-agent': 'AfishaBot/1.0 (+https://expresscarwash.cl; theater repertoire aggregator)',
-    },
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${pageUrl}`);
-  const html = await res.text();
-
+function extractJsonLdEventsFromHtml(html: string, pageUrl: string): ScrapedShow[] {
   const blocks = [
     ...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi),
   ];
@@ -107,6 +98,49 @@ export async function extractJsonLdEvents(pageUrl: string): Promise<ScrapedShow[
   // Dedup by externalId.
   return [...new Map(shows.map((s) => [s.externalId, s])).values()];
 }
+
+export async function extractJsonLdEvents(pageUrl: string): Promise<ScrapedShow[]> {
+  const res = await fetch(pageUrl, {
+    headers: {
+      'user-agent': 'AfishaBot/1.0 (+https://expresscarwash.cl; theater repertoire aggregator)',
+    },
+    cache: 'no-store',
+    // A hung host must never stall the whole scan.
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${pageUrl}`);
+  return extractJsonLdEventsFromHtml(await res.text(), pageUrl);
+}
+
+// ---- Generic JSON-LD fallback adapter ---------------------------------------
+// Default for every venue without a bespoke adapter: harvests schema.org Event
+// JSON-LD from the venue's eventSources (falling back to the website). Sites
+// without JSON-LD simply yield 0 shows until a bespoke parser is written, so
+// running it against all sources is safe. Categories are derived from the
+// event title (same approach as the seed), not from the venue type.
+const genericJsonLdScraper: TheaterScraper = {
+  key: 'jsonld',
+  async fetchShows(theater) {
+    const urls = [
+      ...new Set([...(theater.eventSources ?? []), theater.website].filter(Boolean)),
+    ].slice(0, 3);
+
+    const shows: ScrapedShow[] = [];
+    for (const url of urls) {
+      try {
+        shows.push(...(await extractJsonLdEvents(url)));
+      } catch {
+        // One unreachable/blocked URL never hides the venue's other sources.
+      }
+    }
+
+    return [...new Map(shows.map((s) => [s.externalId, s])).values()].map((s) => ({
+      ...s,
+      category: s.category === 'teatro' ? null : s.category,
+      categories: normalizeEventCategories(`${s.title} ${s.venue ?? ''}`),
+    }));
+  },
+};
 
 // ---- Per-theater adapters --------------------------------------------------
 // Each adapter is keyed by Theater.adapter and maps a site's repertoire to
@@ -418,6 +452,27 @@ function isCurrentOrUpcoming(show: ScrapedShow): boolean {
   return start != null && !isNaN(start) && start >= threshold;
 }
 
+function gamPrice(html: string): { priceCents: number | null; priceText: string | null } {
+  const text = htmlText(html);
+  const amounts = [...text.matchAll(/\$\s*(\d{1,3}(?:\.\d{3})+|\d{4,6})(?:,\d+)?/g)]
+    .map((m) => parseClpAmount(m[1]))
+    .filter((n): n is number => n != null && isFinite(n) && n >= 0);
+
+  if (amounts.length > 0) {
+    const amount = Math.min(...amounts);
+    return {
+      priceCents: Math.round(amount * 100),
+      priceText: `${new Intl.NumberFormat('es-CL').format(Math.round(amount))} CLP`,
+    };
+  }
+
+  if (/\b(gratis|gratuit[oa]|entrada\s+(?:liberada|libre))\b/i.test(text)) {
+    return { priceCents: 0, priceText: '0 CLP' };
+  }
+
+  return { priceCents: null, priceText: null };
+}
+
 // Each GAM detail page carries one schema.org Event; reuse the generic
 // extractor and keep only pages that yield a current/upcoming date or date
 // range. The raw category is the section the show was found under; controlled
@@ -440,19 +495,29 @@ export const gamScraper: TheaterScraper = {
 
     const shows: ScrapedShow[] = [];
     await mapLimit([...byUrl.keys()], 6, async (url) => {
-      let events: ScrapedShow[] = [];
+      let html = '';
       try {
-        events = await extractJsonLdEvents(url);
+        const res = await fetch(url, {
+          headers: { 'user-agent': 'AfishaBot/1.0 (+https://expresscarwash.cl; theater repertoire aggregator)' },
+          cache: 'no-store',
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!res.ok) return;
+        html = await res.text();
       } catch {
         return; // a single broken detail page never blocks the others
       }
+      const events = extractJsonLdEventsFromHtml(html, url);
       const ev = events[0];
       if (!ev || !isCurrentOrUpcoming(ev)) return;
+      const price = gamPrice(html);
       const category = byUrl.get(url) ?? 'Teatro';
       ev.category = category;
       ev.categories = normalizeEventCategories(
         [category, ev.title].filter(Boolean).join(' ')
       );
+      ev.priceText = ev.priceText ?? price.priceText;
+      ev.priceCents = ev.priceCents ?? price.priceCents;
       ev.venue = ev.venue ? decodeEntities(ev.venue) : null;
       shows.push(ev);
     });
@@ -775,6 +840,7 @@ export const SCRAPERS: Record<string, TheaterScraper> = {
   gam: gamScraper,
   lascondes: lasCondesScraper,
   teatrouc: teatroUcScraper,
+  jsonld: genericJsonLdScraper,
 };
 
 // ---- Orchestrator ----------------------------------------------------------
@@ -788,32 +854,38 @@ export interface ScrapeResult {
 }
 
 /**
- * Runs every active theater that has an adapter, upserting its shows. Each
- * theater is isolated: a failure is recorded on the Theater row and never
- * aborts the others. Idempotent — re-running updates `lastSeenAt` and details.
+ * Runs every active theater, upserting its shows. Venues without a bespoke
+ * adapter fall back to the generic JSON-LD extractor, so all sources are
+ * attempted. Each theater is isolated: a failure is recorded on the Theater
+ * row and never aborts the others. Idempotent — re-running updates
+ * `lastSeenAt` and details. Venues run in small parallel batches so ~200
+ * sources finish in minutes instead of hours.
  */
+const SCRAPE_CONCURRENCY = 8;
+
 export async function runScrape(): Promise<ScrapeResult[]> {
   const theaters = await prisma.theater.findMany({
-    where: { isActive: true, adapter: { not: null } },
+    where: { isActive: true },
   });
 
   const results: ScrapeResult[] = [];
 
-  for (const theater of theaters) {
-    const scraper = theater.adapter ? SCRAPERS[theater.adapter] : undefined;
-    const now = new Date();
+  for (let i = 0; i < theaters.length; i += SCRAPE_CONCURRENCY) {
+    const batch = theaters.slice(i, i + SCRAPE_CONCURRENCY);
+    const batchResults = await Promise.all(batch.map((theater) => scrapeOne(theater)));
+    results.push(...batchResults);
+  }
 
-    if (!scraper) {
-      results.push({
-        theater: theater.slug,
-        ok: false,
-        found: 0,
-        upserted: 0,
-        error: `no adapter "${theater.adapter}"`,
-      });
-      continue;
-    }
+  return results;
+}
 
+async function scrapeOne(
+  theater: Awaited<ReturnType<typeof prisma.theater.findMany>>[number]
+): Promise<ScrapeResult> {
+  const scraper = (theater.adapter && SCRAPERS[theater.adapter]) || genericJsonLdScraper;
+  const now = new Date();
+
+  {
     try {
       const shows = await scraper.fetchShows(theater);
       let upserted = 0;
@@ -861,16 +933,14 @@ export async function runScrape(): Promise<ScrapeResult[]> {
         where: { id: theater.id },
         data: { lastScrapedAt: now, lastScrapeOk: true, lastError: null },
       });
-      results.push({ theater: theater.slug, ok: true, found: shows.length, upserted });
+      return { theater: theater.slug, ok: true, found: shows.length, upserted };
     } catch (e) {
       const error = e instanceof Error ? e.message : String(e);
       await prisma.theater.update({
         where: { id: theater.id },
         data: { lastScrapedAt: now, lastScrapeOk: false, lastError: error.slice(0, 500) },
       });
-      results.push({ theater: theater.slug, ok: false, found: 0, upserted: 0, error });
+      return { theater: theater.slug, ok: false, found: 0, upserted: 0, error };
     }
   }
-
-  return results;
 }

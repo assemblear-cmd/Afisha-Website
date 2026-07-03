@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 
 import { normalizeEventCategories } from '../src/lib/taxonomy';
 import { SOURCE_VENUES } from './sourceVenues';
+import { ensureAdminUser, syncCommerceDefaults } from './commerceDefaults';
 
 const prisma = new PrismaClient();
 
@@ -444,6 +445,14 @@ async function main() {
 
   const eventCount = await prisma.event.count();
   const ticketCount = await prisma.ticketType.count();
+
+  // Organizer/commerce module defaults: 7 homepage tiles, promo services
+  // (incl. the CLP 20,000 scanner add-on), and the admin account.
+  await syncCommerceDefaults(prisma);
+  const adminEmail = await ensureAdminUser(prisma);
+  console.log(`  Homepage tiles: ${await prisma.homepageTile.count()}`);
+  console.log(`  Promo services: ${await prisma.promoService.count()}`);
+  console.log(`  Admin user:     ${adminEmail}`);
 
   console.log('Seed complete.');
   console.log(`  Users:        3`);

@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
 
   const where: Prisma.EventWhereInput = {
     isPublished: true,
+    status: 'PUBLISHED',
     startsAt: { gte: new Date() },
   };
 
@@ -102,6 +103,10 @@ export async function POST(req: NextRequest) {
       startsAt,
       endsAt,
       coverImage,
+      status: 'DRAFT',
+      isPublished: false,
+      contactName: user.name,
+      contactEmail: user.email,
       organizerId: user.id,
       ticketTypes: {
         create: data.ticketTypes.map((tt) => ({

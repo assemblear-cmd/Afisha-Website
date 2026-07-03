@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { CATEGORIES } from '@/lib/categories';
-import { Button, Card, Field, Input, Textarea, Select, Label } from '@/components/ui';
+import { combineDateAndTime } from '@/lib/date-time-input';
+import { Button, Card, Field, Input, Textarea, Select } from '@/components/ui';
+import { CoverImageUploader } from '@/components/events/CoverImageUploader';
 
 interface TicketRow {
   name: string;
@@ -32,9 +34,12 @@ export function CreateEventForm() {
   const [venue, setVenue] = useState('');
   const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
-  const [startsAt, setStartsAt] = useState('');
-  const [endsAt, setEndsAt] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [coverImage, setCoverImage] = useState('');
+  const [coverUploading, setCoverUploading] = useState(false);
   const [tickets, setTickets] = useState<TicketRow[]>([{ ...DEFAULT_TICKET }]);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
@@ -53,14 +58,17 @@ export function CreateEventForm() {
 
   function validate(): FormErrors {
     const errs: FormErrors = {};
+    const startsAt = combineDateAndTime(startDate, startTime);
+    const endsAt = combineDateAndTime(endDate, endTime);
+
     if (!title.trim() || title.trim().length < 3) errs.title = 'Title must be at least 3 characters.';
     if (!description.trim() || description.trim().length < 10) errs.description = 'Description must be at least 10 characters.';
     if (!category) errs.category = 'Please select a category.';
     if (!venue.trim()) errs.venue = 'Venue is required.';
     if (!city.trim()) errs.city = 'City is required.';
     if (!address.trim()) errs.address = 'Address is required.';
-    if (!startsAt) errs.startsAt = 'Start date/time is required.';
-    if (!endsAt) errs.endsAt = 'End date/time is required.';
+    if (!startDate || !startTime) errs.startsAt = 'Start date and time are required.';
+    if (!endDate || !endTime) errs.endsAt = 'End date and time are required.';
     if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
       errs.endsAt = 'End date must be after start date.';
     }
@@ -82,6 +90,8 @@ export function CreateEventForm() {
     }
     setErrors({});
     setLoading(true);
+    const startsAt = combineDateAndTime(startDate, startTime);
+    const endsAt = combineDateAndTime(endDate, endTime);
 
     const ticketTypes = tickets
       .filter((t) => t.name.trim() && parseInt(t.quantity, 10) >= 1)
@@ -112,7 +122,7 @@ export function CreateEventForm() {
       const data = (await res.json()) as { event?: { id: string }; error?: string };
 
       if (res.ok && data.event?.id) {
-        window.location.href = '/events/' + data.event.id;
+        window.location.href = '/dashboard/events/' + data.event.id;
       } else {
         setErrors({ server: data.error ?? 'Something went wrong. Please try again.' });
         setLoading(false);
@@ -170,15 +180,12 @@ export function CreateEventForm() {
           </Select>
         </Field>
 
-        <Field label="Cover image URL" htmlFor="coverImage" hint="Optional — a default image will be used if left blank.">
-          <Input
-            id="coverImage"
-            type="url"
-            value={coverImage}
-            onChange={(e) => setCoverImage(e.target.value)}
-            placeholder="https://example.com/image.jpg"
-          />
-        </Field>
+        <CoverImageUploader
+          value={coverImage}
+          onChange={setCoverImage}
+          onUploadingChange={setCoverUploading}
+          disabled={loading}
+        />
       </Card>
 
       {/* Location */}
@@ -220,24 +227,44 @@ export function CreateEventForm() {
       <Card className="p-6 space-y-4">
         <h2 className="font-semibold text-ink text-lg">Date &amp; time</h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Starts at" htmlFor="startsAt" error={errors.startsAt}>
-            <Input
-              id="startsAt"
-              type="datetime-local"
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
-            />
-          </Field>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_11rem]">
+            <Field label="Start date" htmlFor="startDate" error={errors.startsAt}>
+              <Input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </Field>
+            <Field label="Start time" htmlFor="startTime">
+              <Input
+                id="startTime"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+            </Field>
+          </div>
 
-          <Field label="Ends at" htmlFor="endsAt" error={errors.endsAt}>
-            <Input
-              id="endsAt"
-              type="datetime-local"
-              value={endsAt}
-              onChange={(e) => setEndsAt(e.target.value)}
-            />
-          </Field>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_11rem]">
+            <Field label="End date" htmlFor="endDate" error={errors.endsAt}>
+              <Input
+                id="endDate"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </Field>
+            <Field label="End time" htmlFor="endTime">
+              <Input
+                id="endTime"
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+            </Field>
+          </div>
         </div>
       </Card>
 
@@ -316,9 +343,9 @@ export function CreateEventForm() {
         variant="primary"
         size="lg"
         className="w-full"
-        disabled={loading}
+        disabled={loading || coverUploading}
       >
-        {loading ? 'Creating event…' : 'Create event'}
+        {coverUploading ? 'Uploading poster…' : loading ? 'Creating event…' : 'Create event'}
       </Button>
     </form>
   );

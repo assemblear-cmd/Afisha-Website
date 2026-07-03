@@ -3,7 +3,8 @@ import type { TicketType } from '@prisma/client';
 import type { Event } from '@/types';
 import { Card, Badge, CoverPlaceholder } from '@/components/ui';
 import { categoryLabel, categoryEmoji } from '@/lib/categories';
-import { formatDate, formatTime, formatPrice } from '@/lib/format';
+import { formatDate, formatTime } from '@/lib/format';
+import { formatTicketPrice } from '@/lib/money';
 
 interface EventCardProps {
   event: Event & { ticketTypes: TicketType[] };
@@ -12,10 +13,10 @@ interface EventCardProps {
 export function EventCard({ event }: EventCardProps) {
   const { id, title, category, venue, city, startsAt, coverImage, ticketTypes } = event;
 
-  const minPrice =
+  const cheapestTicket =
     ticketTypes.length > 0
-      ? Math.min(...ticketTypes.map((t) => t.priceCents))
-      : 0;
+      ? [...ticketTypes].sort((a, b) => a.priceCents - b.priceCents)[0]
+      : null;
 
   return (
     <Link href={`/events/${id}`} className="block min-w-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-coral rounded-xl">
@@ -51,11 +52,11 @@ export function EventCard({ event }: EventCardProps) {
 
           {/* Footer price */}
           <div className="mt-auto pt-3">
-            {minPrice <= 0 ? (
+            {!cheapestTicket || cheapestTicket.priceCents <= 0 ? (
               <span className="text-sm font-medium text-success">Free</span>
             ) : (
               <span className="text-sm font-medium text-ink">
-                From {formatPrice(minPrice)}
+                From {formatTicketPrice(cheapestTicket.priceCents, cheapestTicket.currency)}
               </span>
             )}
           </div>

@@ -1,4 +1,11 @@
-import { formatPrice, centsToDollars, dollarsToCents, formatDate, formatTime } from '@/lib/format';
+import {
+  formatPrice,
+  centsToDollars,
+  dollarsToCents,
+  formatDate,
+  formatTime,
+  formatListingPrice,
+} from '@/lib/format';
 
 describe('formatPrice', () => {
   it('returns "Free" for 0', () => {
@@ -53,6 +60,24 @@ describe('dollarsToCents', () => {
   it('round-trips with centsToDollars', () => {
     expect(dollarsToCents(centsToDollars(1999))).toBe(1999);
     expect(centsToDollars(dollarsToCents(19.99))).toBeCloseTo(19.99);
+  });
+});
+
+describe('formatListingPrice', () => {
+  it('formats scraped CLP values stored as pesos times 100', () => {
+    expect(formatListingPrice(900000, 'CLP', 'Gratis')).toBe('9.000 CLP');
+  });
+
+  it('formats organizer CLP values stored as whole pesos', () => {
+    expect(formatListingPrice(9000, 'CLP', 'Gratis')).toBe('9.000 CLP');
+  });
+
+  it('uses raw source price text when no parsed price is available', () => {
+    expect(formatListingPrice(null, 'CLP', 'Gratis', 'Entrada liberada')).toBe('Entrada liberada');
+  });
+
+  it('keeps non-CLP values in minor units', () => {
+    expect(formatListingPrice(2500, 'USD', 'Free')).toBe('$25.00');
   });
 });
 

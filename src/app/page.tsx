@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma';
 import { Container, LinkButton } from '@/components/ui';
-import { SearchBar } from '@/components/events/SearchBar';
 import { EventGrid } from '@/components/events/EventGrid';
 import { getLocale } from '@/i18n/getLocale';
 import { getDictionary } from '@/i18n/config';
@@ -9,6 +8,7 @@ import { WhereToGo } from '@/components/home/WhereToGo';
 import { Mosaic } from '@/components/home/Mosaic';
 import { WeekendFeature } from '@/components/home/WeekendFeature';
 import { getUpcomingShows } from '@/lib/data/shows';
+import { getActivePromotedTiles } from '@/lib/promotion/homepage';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +17,7 @@ export default async function HomePage() {
   const events = await prisma.event.findMany({
     where: {
       isPublished: true,
+      status: 'PUBLISHED',
       startsAt: { gte: new Date() },
     },
     include: { ticketTypes: true },
@@ -24,20 +25,16 @@ export default async function HomePage() {
     take: 8,
   });
   const shows = await getUpcomingShows();
+  // Paid homepage tile placements (approved/live, window covering now).
+  // Positions without one keep the normal mosaic content.
+  const promoted = Array.from((await getActivePromotedTiles()).values());
 
   return (
     <main>
       <TopCategoryNav />
       <WhereToGo />
-      <Mosaic items={shows} />
+      <Mosaic items={shows} promoted={promoted} />
       <WeekendFeature />
-
-      {/* MOBILE SEARCH — the header search is desktop-only */}
-      <section className="mt-6 lg:hidden">
-        <Container>
-          <SearchBar />
-        </Container>
-      </section>
 
       {/* UPCOMING EVENTS */}
       <section className="py-12 bg-surface">

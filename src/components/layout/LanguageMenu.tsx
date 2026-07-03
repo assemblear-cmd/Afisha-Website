@@ -4,10 +4,21 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { locales, localeNames, LOCALE_COOKIE, type Locale } from '@/i18n/config';
 
+const localeFlags: Record<Locale, string> = {
+  es: '🇨🇱',
+  en: '🇺🇸',
+};
+
 // Language picker shown in the header. Writes the chosen locale to a cookie and
 // refreshes so the Server Components re-render with the new dictionary. Driven
 // by the `locales` list, so adding a language needs no change here.
-export function LanguageMenu({ current }: { current: Locale }) {
+export function LanguageMenu({
+  current,
+  buttonClassName = 'flex items-center gap-1 text-sm font-medium text-[#39364F] no-underline hover:text-coral',
+}: {
+  current: Locale;
+  buttonClassName?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -34,10 +45,10 @@ export function LanguageMenu({ current }: { current: Locale }) {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Idioma / Language"
-        className="flex items-center gap-1 text-sm font-medium text-[#39364F] no-underline hover:text-coral"
+        className={buttonClassName}
       >
-        <span aria-hidden>🌐</span>
-        {current.toUpperCase()}
+        <span aria-hidden className="text-lg leading-none">{localeFlags[current]}</span>
+        <span className="sr-only">{localeNames[current]}</span>
       </button>
       {open && (
         <ul
@@ -52,11 +63,12 @@ export function LanguageMenu({ current }: { current: Locale }) {
                 role="option"
                 aria-selected={loc === current}
                 onClick={() => choose(loc)}
-                className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-surface ${
+                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-surface ${
                   loc === current ? 'font-semibold text-coral' : 'text-body'
                 }`}
               >
-                {localeNames[loc]}
+                <span aria-hidden className="text-lg leading-none">{localeFlags[loc]}</span>
+                <span>{localeNames[loc]}</span>
               </button>
             </li>
           ))}

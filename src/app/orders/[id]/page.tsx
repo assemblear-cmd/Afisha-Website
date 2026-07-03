@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
-import { formatPrice, formatDateTime } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
+import { formatMoney } from '@/lib/money';
 import { Badge, Card, Container, LinkButton } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
@@ -73,7 +74,7 @@ export default async function OrderConfirmationPage({ params }: PageProps) {
               <span>
                 {item.quantity} × {item.ticketType.name}
               </span>
-              <span>{formatPrice(item.quantity * item.unitPriceCents)}</span>
+              <span>{formatMoney(item.quantity * item.unitPriceCents, order.currency)}</span>
             </li>
           ))}
         </ul>
@@ -82,7 +83,7 @@ export default async function OrderConfirmationPage({ params }: PageProps) {
 
         <div className="flex justify-between font-semibold text-ink">
           <span>Total paid</span>
-          <span>{formatPrice(order.totalCents)}</span>
+          <span>{formatMoney(order.totalCents, order.currency)}</span>
         </div>
       </Card>
 

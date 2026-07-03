@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { coverImageSchema } from '@/lib/cover-image';
 
 export const ROLES = ['visitor', 'organizer'] as const;
 
@@ -29,7 +30,7 @@ export const createEventSchema = z.object({
   address: z.string().min(1),
   startsAt: z.string().min(1),
   endsAt: z.string().min(1),
-  coverImage: z.string().url().optional().or(z.literal('')),
+  coverImage: coverImageSchema,
   ticketTypes: z.array(ticketTypeInputSchema).min(1),
 });
 

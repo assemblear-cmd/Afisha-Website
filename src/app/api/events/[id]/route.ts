@@ -13,7 +13,7 @@ export async function GET(
     },
   });
 
-  if (!event) {
+  if (!event || event.status !== 'PUBLISHED' || !event.isPublished) {
     return NextResponse.json({ error: 'Event not found.' }, { status: 404 });
   }
 

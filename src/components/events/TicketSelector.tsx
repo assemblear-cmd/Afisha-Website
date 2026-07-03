@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import { formatPrice } from '@/lib/format';
+import { formatTicketPrice } from '@/lib/money';
 
 interface TicketType {
   id: string;
   name: string;
   priceCents: number;
+  currency?: string;
   quantity: number;
   sold: number;
 }
@@ -34,6 +35,7 @@ export function TicketSelector({ eventId, ticketTypes }: TicketSelectorProps) {
     (sum, t) => sum + t.priceCents * (quantities[t.id] ?? 0),
     0
   );
+  const subtotalCurrency = ticketTypes[0]?.currency ?? 'CLP';
 
   function handleCheckout() {
     const items = ticketTypes
@@ -57,7 +59,7 @@ export function TicketSelector({ eventId, ticketTypes }: TicketSelectorProps) {
             <div className="flex-1 min-w-0">
               <p className="font-medium text-ink text-sm leading-tight">{ticket.name}</p>
               <p className="text-muted text-xs mt-0.5">
-                {ticket.priceCents <= 0 ? 'Free' : formatPrice(ticket.priceCents)}
+                {formatTicketPrice(ticket.priceCents, ticket.currency ?? 'CLP')}
               </p>
             </div>
 
@@ -99,7 +101,7 @@ export function TicketSelector({ eventId, ticketTypes }: TicketSelectorProps) {
         <div className="border-t border-ink/10 pt-3 flex justify-between items-center text-sm">
           <span className="text-muted">Subtotal</span>
           <span className="font-semibold text-ink">
-            {subtotalCents <= 0 ? 'Free' : formatPrice(subtotalCents)}
+            {formatTicketPrice(subtotalCents, subtotalCurrency)}
           </span>
         </div>
       )}

@@ -58,14 +58,22 @@ export const LOCATION_CATEGORIES = [
   'universidad', //         университет
   'bar', //                 бар
   'club', //                клуб
+  'cine', //                кинотеатр / кинозал
   'estadio', //             стадион
+  'centro-deportivo', //    спортивный центр
+  'hipodromo', //           ипподром
   'centro-cultural', //     культурный центр
+  'biblioteca', //          библиотека
+  'galeria', //             галерея
   'restaurante', //         ресторан
   'oficina', //             офис
   'edificio', //            здание
   'arena', //               арена
   'sala-de-eventos', //     event hall / venue
   'centro-de-convenciones', // конференц-центр
+  'ticketera', //           ticketing platform
+  'plataforma-cultural', //  cultural listings platform
+  'productora', //          event producer / organizer
   'hotel', //               отель
   'parque', //              парк
   'centro-comercial', //    торговый центр

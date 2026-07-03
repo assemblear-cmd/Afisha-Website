@@ -32,5 +32,8 @@ yarn-error.log*
 /test-results
 /blob-report
 
+# local user uploads
+/public/uploads
+
 # vercel
 .vercel
