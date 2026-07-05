@@ -4,7 +4,24 @@ import { SignJWT, jwtVerify } from 'jose';
 
 export const COOKIE_NAME = 'afisha_token';
 
-const secret = new TextEncoder().encode(process.env.AUTH_SECRET || 'dev-secret');
+// JWT signing key. Resolved lazily (not at module load) so a missing secret
+// fails a request rather than the build. In production a strong AUTH_SECRET is
+// mandatory — we never sign or verify tokens with a guessable fallback, which
+// would let anyone forge an admin session. Local dev/tests may run without it.
+const MIN_SECRET_LENGTH = 16;
+
+function resolveSecret(): Uint8Array {
+  const configured = process.env.AUTH_SECRET;
+  if (configured && configured.length >= MIN_SECRET_LENGTH) {
+    return new TextEncoder().encode(configured);
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'AUTH_SECRET is missing or too short. Set a strong random value (>= 16 chars) in production.'
+    );
+  }
+  return new TextEncoder().encode(configured || 'dev-only-insecure-secret');
+}
 
 // "visitor" is the customer role. "admin" accounts are created by seed or
 // directly in the DB — registration never accepts the admin role.
@@ -34,12 +51,12 @@ export async function signToken(user: SessionUser): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(secret);
+    .sign(resolveSecret());
 }
 
 export async function verifyToken(token: string): Promise<SessionUser | null> {
   try {
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, resolveSecret());
     return {
       id: String(payload.id),
       email: String(payload.email),

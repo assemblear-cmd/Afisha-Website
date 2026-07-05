@@ -1,225 +1,810 @@
-# DondeGO — Саммари: архитектура, бизнес-модель, тех-описание, вывод в Play Market (тест)
+# DondeGO — project summary for a fresh chat
 
-Дата: 2026-07-05 · Ветка: `feat/municipal-scraper-i18n` · Репозиторий:
-`/Users/skif/Documents/GitHub/Afisha-Website`
+Дата обновления: 2026-07-05 16:58 America/Santiago
+Репозиторий: `/Users/skif/Documents/GitHub/Afisha-Website`
+Ветка: `main`
+Последний коммит: `c02a3f9 feat(mobile): Events tab (organized + liked), feed likes, top-bar menu`
 
-Связанные документы:
-[`docs/android-app-plan.md`](./android-app-plan.md) (архитектура Android),
-[`docs/android-api.md`](./android-api.md) (контракт мобильного API),
-[`docs/HANDOFF-dondego-2026-07-02-next-chat.md`](./HANDOFF-dondego-2026-07-02-next-chat.md)
-(состояние бэкенда/скрапера).
-
----
-
-## 1. Что за продукт
-
-**DondeGO** — афиша-агрегатор событий Сантьяго (Чили) + self-service платформа
-для организаторов. Две роли в одном продукте:
-
-1. **Витрина/агрегатор** — собирает события из внешних источников (театры,
-   площадки, билетные операторы, музеи…) и показывает их пользователям. Билеты
-   на такие события покупаются **на сайте источника** (внешняя ссылка).
-2. **Билетная платформа** — организатор сам публикует событие, продаёт билеты
-   через DondeGO (Stripe), а на входе персонал сканирует QR. С каждой продажи
-   DondeGO берёт комиссию.
-
-Локали: `es` (основная) + `en`. Валюта: **CLP** (чилийское песо, целые песо,
-без копеек).
+Этот документ нужен как самодостаточная память проекта для нового чата без
+контекста. Он описывает продукт, архитектуру, деплой, домен, Android-приложение,
+операционные команды, последние изменения и ближайшие риски.
 
 ---
 
-## 2. Бизнес-задача и монетизация
+## 1. Коротко о продукте
 
-### Основная модель — комиссия с билетов
-- **10% с каждой продажи** DondeGO-билета остаётся платформе, **90%** — чистыми
-  организатору (`PLATFORM_COMMISSION_PCT = 10` в
-  `src/lib/finance/commission.ts`).
-- Деньги идут через **Stripe**; расчёты организатору — через внутренний
-  **ledger** (журнал в CLP-«токенах», 1 токен = 1 CLP) и выплаты (payouts).
-- Инвариант: **единственный источник правды о платеже — вебхук Stripe**.
-  Приложение/клиент никогда не помечает заказ оплаченным.
+**DondeGO** — афиша событий Сантьяго, Чили, совмещенная с self-service
+платформой для организаторов.
 
-### Дополнительные источники дохода (уже в коде)
-- **Промо-плитки на главной** — 7 слотов, почасовая цена в CLP со скидками за
-  длительность: **12ч −10%, 24ч −15%, 48ч −25%, неделя −40%**
-  (`src/lib/promotion/pricing.ts`).
-- **Промо-услуги** — Instagram-пост/сторис, Telegram-репост.
-- **Scanner add-on** — для бесплатных событий сканер QR включается как платная
-  опция (CLP 20 000).
+В продукте есть две линии:
 
-### Ключевая ценность
-- Для посетителя: одно место, где видно всё, что происходит в городе (агрегатор
-  + прямые продажи).
-- Для организатора: публикация, продажа билетов, контроль входа (QR-сканер),
-  продвижение — без своего сайта и платёжной интеграции.
-- Для платформы: комиссия с оборота + продвижение.
+1. **Агрегатор событий**: DondeGO собирает события из внешних источников
+   (театры, площадки, билетные операторы, культурные центры) и показывает их
+   пользователям. Для таких событий покупка билета ведет на внешний сайт
+   источника.
+2. **Собственная билетная платформа**: организатор создает событие в DondeGO,
+   продает билеты через DondeGO, а персонал проверяет билеты через QR/сканер.
+
+Основная локаль: `es`. Также есть `en`.
+Валюта: `CLP` — чилийское песо, целые значения без копеек.
 
 ---
 
-## 3. Текущая архитектура
+## 2. Бизнес-модель
 
+Главная монетизация:
+
+- DondeGO берет **10% комиссии** с каждой продажи билета.
+- Организатор получает 90%.
+- Комиссия считается на сервере в `src/lib/finance/commission.ts`.
+- Балансы организаторов ведутся через внутренний ledger:
+  `src/lib/finance/ledger.ts`.
+
+Дополнительная монетизация:
+
+- Платные промо-плитки на главной странице.
+- Промо-услуги: Instagram post/story, Telegram repost.
+- Платный scanner add-on для бесплатных событий.
+
+Критический финансовый инвариант:
+
+- Единственный источник правды об оплате — **Stripe webhook**.
+- Клиент, редирект после оплаты и Android-приложение не должны сами помечать
+  заказ оплаченным.
+- Билеты, ledger и финальное состояние платежа создаются/меняются сервером.
+
+---
+
+## 3. Текущий production-статус
+
+Проект уже задеплоен и работает.
+
+Production URL:
+
+- `https://dondego.cl`
+- `https://www.dondego.cl`
+- fallback Vercel domain: `https://afisha-website.vercel.app`
+
+Проверено 2026-07-05:
+
+- `curl -I https://dondego.cl` возвращает `HTTP/2 200`.
+- `curl -I https://www.dondego.cl` возвращает `HTTP/2 200`.
+- `curl https://dondego.cl/api/events` возвращает JSON со списком событий.
+- Vercel runtime error из-за неправильного `DATABASE_URL` уже исправлен.
+
+Vercel:
+
+- Project: `afisha-website`
+- Owner/team: `assemblear-4979s-projects`
+- Project ID: `prj_1PpjPKwIeANUSX2afmjfF4uDtPOK`
+- Framework preset: Next.js
+- Root Directory: `.`
+- Build Command: `npm run build`
+- Output Directory: Next.js default
+- Node.js Version на Vercel: `24.x`
+
+Database:
+
+- Production DB создана через **Neon Postgres Free** в Vercel Marketplace.
+- Neon resource name: `dondego-postgres`
+- Neon external resource id: `holy-frog-13761020`
+- Neon store id: `store_mNP9GobNwAlHRP9t`
+- Prisma schema уже применена к Neon через `npx prisma db push`.
+- Seed уже выполнен против production DB.
+
+Production seed создал:
+
+- 197 theaters/sources.
+- 4 shows из seed.
+- 7 homepage tiles.
+- 4 promo services.
+- admin user: `admin@dondego.cl`.
+- 3 demo users.
+- 19 native events.
+- 31 ticket types.
+
+Секреты не хранить в репозитории. Значения уже заведены в Vercel env.
+
+---
+
+## 4. Домен и DNS
+
+Домен куплен на GoDaddy:
+
+- `dondego.cl`
+
+Vercel-домены добавлены и верифицированы:
+
+- `dondego.cl`
+- `www.dondego.cl`
+
+DNS по Google resolver на момент проверки:
+
+```text
+dondego.cl A      64.29.17.1
+dondego.cl A      216.198.79.1
+www.dondego.cl CNAME b60f1a4a55fe6ac4.vercel-dns-017.com.
 ```
-┌─────────────────────────┐        ┌──────────────────────────┐
-│  Android app (Kotlin)   │        │  Внешние источники (197) │
-│  Jetpack Compose         │        │  театры/площадки/билетеры │
-└───────────┬─────────────┘        └───────────┬──────────────┘
-            │ HTTPS /api/v1 (Bearer JWT)         │ скрапинг (cron)
-            ▼                                     ▼
-┌──────────────────────────────────────────────────────────────┐
-│  Next.js 14 (App Router) — веб-сайт + API + бизнес-логика     │
-│  ┌───────────────┐  ┌───────────────┐  ┌──────────────────┐   │
-│  │ Витрина (SSR) │  │ /api/v1 (моб.)│  │ Организатор/Admin │   │
-│  └───────────────┘  └───────────────┘  └──────────────────┘   │
-│  Финансы: ledger, комиссия, payouts · Скрапер · Модерация     │
-└───────────────┬───────────────────────────┬──────────────────┘
-                │ Prisma                      │ Stripe SDK / webhook
-                ▼                             ▼
-        ┌──────────────┐              ┌──────────────┐
-        │ PostgreSQL   │              │   Stripe     │
-        │ (Docker/облако)             │  (платежи)   │
-        └──────────────┘              └──────────────┘
-```
 
-- **Бэкенд/веб**: Next.js 14 App Router, React 18, Tailwind, TypeScript,
-  Prisma 5, PostgreSQL. Аутентификация — email+пароль, JWT (`jose`+`bcryptjs`).
-- **Мобильное приложение**: нативный Kotlin + Jetpack Compose (`apps/android`),
-  мульти-модульное (core/* + feature/*), Retrofit + kotlinx.serialization,
-  EncryptedSharedPreferences для токена, ZXing для QR. `applicationId dondeg.app`.
-- **Два домена данных в одной схеме**:
-  - агрегатор: `Theater` (источник) + `Show` (событие из источника);
-  - коммерция: `Event` / `TicketType` / `Order` / `Ticket` / `TicketScan` /
-    `Payment` / `LedgerTransaction` / `PayoutRequest` / промо-модели.
-- **Скрапер**: реестр из 197 источников (`prisma/sourceVenues.ts`), адаптеры +
-  общий JSON-LD-фолбэк; сейчас в БД ~200 актуальных событий.
+Правильные GoDaddy records:
 
----
+| Type | Name | Value | Notes |
+|---|---|---|---|
+| A | `@` | `216.198.79.1` | Vercel apex |
+| A | `@` | `64.29.17.1` | Vercel apex |
+| CNAME | `www` | `b60f1a4a55fe6ac4.vercel-dns-017.com` | Vercel www |
 
-## 4. Техническое описание (что важно знать)
+Не трогать без необходимости:
 
-### Стек
-| Слой | Технологии |
-|---|---|
-| Веб/API | Next.js 14, React 18, TypeScript, Tailwind |
-| БД/ORM | PostgreSQL + Prisma 5 |
-| Платежи | Stripe (Checkout Session сейчас; PaymentIntent — в планах) |
-| Auth | JWT (cookie для веба; **Bearer** для мобильного) |
-| Android | Kotlin, Jetpack Compose, Material 3, Retrofit, ZXing |
-| Тесты | Vitest (144 unit-теста зелёные), Playwright (e2e — задел) |
+- NS records GoDaddy.
+- SOA.
+- `_domainconnect`.
+- `_dmarc`.
 
-### Инварианты (не нарушать)
-1. Оплату подтверждает **только вебхук Stripe** — не клиент, не редирект.
-2. Комиссия/баланс/ledger — **только на сервере** (`src/lib/finance/*`); CLP —
-   целые минорные единицы.
-3. Навигация по категориям **count-driven**: показываются только непустые
-   категории, по убыванию количества (тай-брейк — порядок таксономии).
-4. Права сканера — серверные; защита от двойного скана атомарна
-   (`updateMany` ISSUED→CHECKED_IN).
-5. Скрап-события ведут на **внешний источник**, не в DondeGO-checkout.
+Проверочные команды:
 
-### Что уже реализовано в Android-приложении
-- Открытие событий (агрегатор + нативные), поиск, фильтр по категориям,
-  pull-to-refresh, состояния загрузки/пусто/ошибка.
-- Детали события: скрап → внешняя ссылка (Custom Tab); нативное → checkout.
-- Регистрация/логин (Bearer JWT в зашифрованном хранилище), роль-зависимая
-  навигация.
-- «Мои билеты» + отображение **QR** (payload с сервера).
-- Сканер: выбор события + ввод/вставка кода билета → `POST /api/scan`, все
-  статусы результата.
-- Организатор/Admin — роль-гейт + переход в веб-консоль (Custom Tab).
-- Сборка проходит: `./gradlew :app:assembleDebug` → APK, lint 0 ошибок.
-
-### Что отложено (осознанно, задокументировано)
-- **Нативный Stripe PaymentSheet** — сейчас нативное событие открывает
-  веб-checkout в Custom Tab (инвариант «вебхук = правда» сохранён).
-- **Камера-сканер** (CameraX + ML Kit) — сейчас ручной ввод кода.
-- Нативные дашборды организатора/админа — сейчас веб-хендофф.
-
-### Как запускается локально
 ```bash
-npm run dev                 # веб+API на :3000 (для телефона: -- -H 0.0.0.0)
-npm run typecheck && npm run lint && npm run test
-cd apps/android && ./gradlew :app:assembleDebug   # -PdondegoApiBase=<url>
+dig @8.8.8.8 +short A dondego.cl
+dig @8.8.8.8 +short CNAME www.dondego.cl
+curl -I https://dondego.cl
+curl -I https://www.dondego.cl
+npx --yes vercel domains verify dondego.cl
+npx --yes vercel domains verify www.dondego.cl
 ```
 
 ---
 
-## 5. Задача: вывести приложение в Google Play для теста
+## 5. Архитектура
 
-Цель — **закрытое/внутреннее тестирование в Google Play** (Internal / Closed
-testing), чтобы тестеры ставили приложение из Play, а не sideload'ом. Это НЕ
-публичный релиз в открытый доступ.
+```text
+Web browser / Android app
+        |
+        | HTTPS
+        v
+Next.js 14 App Router
+        |
+        | Server Components, Route Handlers, API v1
+        v
+Business logic in src/lib/*
+        |
+        | Prisma Client
+        v
+PostgreSQL / Neon production DB
 
-### 5.0 Предусловие (критично): публичный бэкенд
-Приложение бесполезно в Play без **постоянно доступного HTTPS-бэкенда** — Play
-ставит его на любые устройства, где нет твоего Mac/Wi-Fi.
-- Развернуть Next.js + PostgreSQL в облако (рекомендация для теста: **Vercel +
-  Neon**, бесплатно; для коммерции — платный план по ToS).
-- Получить прод-URL, например `https://api.dondego.app` (или `*.vercel.app`).
-- Прогнать `db:push` + наполнить событиями на облачной БД.
-- Задать env: `DATABASE_URL`, `AUTH_SECRET`, `APP_URL`, Stripe-ключи (для теста
-  оплаты — test keys) + вебхук на прод-URL.
+External integrations:
+- Stripe for checkout and webhooks.
+- Google OAuth ID token verification for mobile Google sign-in.
+- External event sources for scraping.
+```
 
-### 5.1 Что нужно сделать в Android-проекте
-1. **Указать прод-URL** в release-сборке (`API_BASE_URL` в
-   `apps/android/app/build.gradle.kts`, блок `release`).
-2. **Подпись приложения**: создать upload-keystore, вынести пароли в
-   `~/.gradle/gradle.properties` (не коммитить), добавить
-   `signingConfigs { release { … } }`. Использовать **Play App Signing**.
-3. **Иконка**: заменить плейсхолдер на адаптивную иконку DondeGO.
-4. **Сгенерировать AAB** (Android App Bundle — Play принимает только AAB):
-   ```bash
-   cd apps/android
-   ./gradlew :app:bundleRelease -PdondegoApiBase=https://<прод-url>/
-   ```
-   Артефакт: `app/build/outputs/bundle/release/app-release.aab`.
-5. Проверить: `versionCode`/`versionName`, `targetSdk` (Play требует свежий),
-   релиз-сборка без cleartext (HTTPS-only в проде), R8 включён.
+Main stack:
 
-### 5.2 Что нужно в Google Play Console
-1. **Аккаунт разработчика Google Play** — разовый взнос **$25**.
-2. Создать приложение: имя **DondeGO**, язык, категория (Events).
-3. Заполнить обязательное для теста:
-   - **Data safety** (сбор: имя, email — аккаунт; история покупок — заказы;
-     без рекламы и геолокации; платежи — Stripe).
-   - Privacy Policy URL (нужна страница политики — можно простую на сайте).
-   - Content rating (анкета), Target audience, разрешения (камера — для сканера).
-4. **Внутреннее тестирование** (Internal testing):
-   - загрузить AAB → создать релиз → добавить тестеров по email (до 100),
-     разослать opt-in ссылку. Тестеры ставят из Play.
-   - (или **Closed testing** — для более широкого круга; для публикации в
-     Production Google сейчас требует ~14 дней closed-теста с ≥12 тестерами).
-
-### 5.3 Порядок работ (roadmap)
-| Шаг | Результат | Блокеры |
-|---|---|---|
-| 1. Деплой бэкенда (Vercel+Neon) | публичный HTTPS-API с данными | нужны аккаунты; ToS для коммерции |
-| 2. Подпись + AAB под прод-URL | `app-release.aab` | нужен keystore |
-| 3. Play Console: аккаунт + карточка | приложение заведено | $25, Privacy Policy |
-| 4. Data safety / rating / тестеры | внутренний трек готов | заполнить анкеты |
-| 5. Загрузка AAB → Internal testing | тестеры ставят из Play | ревью Google (обычно быстро для internal) |
-
-### 5.4 Что можно подготовить в репозитории заранее (без аккаунтов)
-- `signingConfigs { release }` со чтением паролей из gradle-свойств.
-- `vercel.json` (регион, cron скрапера) + выверенный `.env.example`.
-- Проверка `npm run build` для прода; адаптивная иконка; строки листинга
-  (es-CL + en-US), скриншоты для Play.
-
-### 5.5 Оценка стоимости (тест)
-- Google Play developer — **$25 разово**.
-- Хостинг для теста — **бесплатно** (Vercel Hobby + Neon free); для коммерческого
-  запуска по ToS — платный план (~$20/мес) или свой VPS.
-- Stripe — комиссии эквайринга только с реальных платежей (в тесте — test mode,
-  бесплатно).
+| Layer | Technology |
+|---|---|
+| Web/API | Next.js 14, React 18, TypeScript |
+| Styling | Tailwind CSS, CSS variables, dark mode via class |
+| ORM/DB | Prisma 5, PostgreSQL |
+| Auth | JWT via `jose`, password hashing via `bcryptjs` |
+| Payments | Stripe Checkout/webhooks |
+| Mobile | Native Android, Kotlin, Jetpack Compose |
+| Tests | Vitest, Playwright |
+| Hosting | Vercel |
+| Production DB | Neon Postgres |
 
 ---
 
-## 6. Резюме одним абзацем
+## 6. Data model
 
-DondeGO — агрегатор событий Сантьяго с встроенной билетной платформой;
-зарабатывает **10% с продажи билетов** (плюс промо-плитки и доп-услуги), где
-источник правды о деньгах — вебхук Stripe, а расчёты организаторам идут через
-серверный ledger. Веб+API на Next.js/Prisma/PostgreSQL, нативное Android-
-приложение (Kotlin/Compose) уже собрано и работает против API. Для вывода в
-Google Play на тест нужно: (1) поднять публичный бэкенд (Vercel+Neon,
-бесплатно для теста), (2) подписать и собрать AAB под прод-URL, (3) завести
-аккаунт Play ($25) и загрузить сборку во Внутреннее тестирование.
+Schema: `prisma/schema.prisma`.
+
+The schema has two main domains in one database.
+
+Aggregator domain:
+
+- `Theater`: external venue/source.
+- `Show`: scraped/external event from a source.
+
+Commerce domain:
+
+- `User`: visitor/organizer/admin.
+- `Event`: native DondeGO event created by a user.
+- `TicketType`: ticket inventory and price.
+- `Order`: purchase order.
+- `OrderItem`: ticket line items.
+- `Ticket`: issued ticket with random token for QR.
+- `TicketScan`: scan/check-in history.
+- `EventScannerAccess`: staff access by event/email.
+- `Payment`: Stripe payment/session state.
+- `WebhookEvent`: idempotency for Stripe webhook events.
+- `LedgerTransaction`: internal CLP ledger for organizer balances.
+- `PayoutRequest`: manual payout workflow.
+- `HomepageTile`, `HomepageTilePlacement`, `PromoService`,
+  `PromotionOrder`, `PromotionOrderItem`: promotion/ads module.
+- `EventLike`: mobile likes for unified feed items.
+
+Important enums:
+
+- `EventStatus`: `DRAFT`, `SUBMITTED`, `IN_REVIEW`, `APPROVED`,
+  `PUBLISHED`, `REJECTED`, `CANCELLED`, `ARCHIVED`, `COMPLETED`.
+- `TicketStatus`: `ISSUED`, `CHECKED_IN`, `CANCELLED`, `REFUNDED`,
+  `EXPIRED`, `INVALIDATED`.
+- `ScanResult`: `VALID`, `ALREADY_USED`, `INVALID`, `CANCELLED`,
+  `REFUNDED`, `EXPIRED`, `EVENT_MISMATCH`, `NO_ACCESS`.
+- `PaymentStatus`: `PENDING`, `REQUIRES_ACTION`, `PAID`, `FAILED`,
+  `CANCELLED`, `REFUNDED`, `PARTIALLY_REFUNDED`.
+- `LedgerType`: gross sale, commission, organizer net credit, payout hold,
+  payout release, payout paid, adjustments.
+
+Important modeling notes:
+
+- Scraped shows and native events are separate tables.
+- Mobile API exposes unified IDs:
+  - `show_<id>` for `Show`
+  - `event_<id>` for `Event`
+- Ticket QR payload is based on a random ticket token and does not expose buyer
+  data.
+- Double scan protection is server-side and atomic.
+
+---
+
+## 7. Web routes
+
+Main public routes:
+
+| Route | Purpose |
+|---|---|
+| `/` | Homepage |
+| `/events` | Native event list/search |
+| `/events/[id]` | Native event detail |
+| `/events/[id]/checkout` | Web checkout |
+| `/fin-de-semana` | Weekend listing |
+| `/calendario` and `/calendario/[date]` | Calendar |
+| `/teatros` | Venue/source listing |
+| `/lectures` | Lectures/content page |
+| `/login`, `/register` | Auth |
+| `/account/tickets` | User tickets |
+| `/account/tickets/[id]` | Ticket detail |
+
+Organizer routes:
+
+| Route | Purpose |
+|---|---|
+| `/organizer` | Organizer home |
+| `/organizer/events` | User's events |
+| `/organizer/events/new` | Create event |
+| `/organizer/events/[id]` | Event dashboard |
+| `/organizer/events/[id]/tickets` | Ticket management |
+| `/organizer/events/[id]/promotion` | Promotion builder |
+| `/organizer/events/[id]/access` | Scanner access |
+| `/organizer/events/[id]/finance` | Event finance |
+| `/organizer/scanner` | Scanner |
+| `/organizer/payouts` | Payout requests |
+
+Admin routes:
+
+| Route | Purpose |
+|---|---|
+| `/admin` | Admin dashboard |
+| `/admin/events` | Moderation |
+| `/admin/events/[id]` | Event moderation detail |
+| `/admin/finance` | Finance overview |
+| `/admin/payouts` | Payout review |
+| `/admin/pricing` | Promo pricing |
+| `/admin/promotions` | Promo order review |
+| `/admin/scanner` | Admin scanner |
+| `/admin/scans` | Scan history |
+| `/admin/tickets` | Ticket admin |
+
+Legacy `/dashboard/*` routes exist and redirect/use organizer surfaces.
+
+---
+
+## 8. API routes
+
+Important web/server routes:
+
+| Route | Purpose |
+|---|---|
+| `POST /api/auth/register` | Web registration, cookie session |
+| `POST /api/auth/login` | Web login, cookie session |
+| `POST /api/auth/logout` | Logout |
+| `GET /api/auth/me` | Current user; Bearer is also supported |
+| `GET /api/events` | Native published events |
+| `POST /api/events` | Legacy event creation |
+| `GET /api/events/[id]` | Native event detail |
+| `POST /api/checkout` | Ticket checkout creation |
+| `POST /api/webhooks/stripe` | Stripe webhook, payment truth |
+| `GET /api/cron/scrape-theaters` | Scraper cron, requires `CRON_SECRET` |
+| `GET /api/cron/cleanup-events` | Cleanup cron, requires `CRON_SECRET` |
+| `POST /api/scan` | Ticket scan/check-in |
+| `POST /api/uploads/event-cover` | Local event cover upload |
+
+Organizer/admin APIs live under:
+
+- `/api/organizer/*`
+- `/api/admin/*`
+- `/api/promotions/*`
+
+Mobile API v1:
+
+| Route | Purpose |
+|---|---|
+| `POST /api/v1/auth/register` | Mobile registration, returns JWT |
+| `POST /api/v1/auth/login` | Mobile login, returns JWT |
+| `POST /api/v1/auth/google` | Mobile Google sign-in |
+| `GET /api/v1/config` | Public app config |
+| `GET /api/v1/categories` | Count-driven categories |
+| `GET /api/v1/feed` | Unified feed |
+| `GET /api/v1/events` | Unified paginated events |
+| `GET /api/v1/events/native/[id]` | Native event detail |
+| `GET /api/v1/events/scraped/[id]` | Scraped event detail |
+| `GET /api/v1/me/events` | Organized/owned events for mobile |
+| `GET /api/v1/me/likes` | User likes |
+| `POST /api/v1/me/likes` | Toggle/add likes |
+| `GET /api/v1/me/tickets` | My tickets |
+| `GET /api/v1/me/tickets/[id]` | Ticket + QR payload |
+| `GET /api/v1/scanner/events` | Events available for scanner |
+
+Deferred native mobile checkout:
+
+- Native Stripe PaymentSheet endpoints are designed in `docs/android-api.md`,
+  but not fully implemented. Android currently opens web checkout in a Custom
+  Tab for native DondeGO events.
+
+---
+
+## 9. Android app
+
+Path: `apps/android`.
+
+App:
+
+- Name: `DondeGO`
+- `applicationId`: `dondeg.app`
+- Native Kotlin + Jetpack Compose.
+- minSdk: 26
+- targetSdk: 36
+- compileSdk: 37
+- Kotlin: 2.3.10
+- AGP: 9.2.1
+
+Module layout:
+
+```text
+apps/android/
+  app/
+  core/common
+  core/model
+  core/network
+  core/data
+  core/designsystem
+  feature/discover
+  feature/eventdetail
+  feature/auth
+  feature/tickets
+  feature/scanner
+  feature/organizer
+  feature/admin
+  feature/checkout
+```
+
+Implemented:
+
+- Discovery/feed.
+- Events tab with organized + liked sections.
+- Event detail for native and scraped events.
+- Login/register.
+- Google sign-in if built with `-PdondegoGoogleClientId=<web-client-id>`.
+- JWT stored locally and sent as Bearer token.
+- My tickets with QR rendering via ZXing.
+- Scanner event picker and manual/pasted token check-in.
+- Organizer/admin role-gated handoff to web console via Custom Tab.
+- In-app language menu.
+
+Deferred:
+
+- Native Stripe PaymentSheet.
+- Camera scanner via CameraX/ML Kit.
+- Fully native organizer/admin dashboards.
+
+Debug API host:
+
+- Default emulator URL: `http://10.0.2.2:3000/`.
+- For real phone over USB, use `adb reverse tcp:3000 tcp:3000` and keep the app
+  configured against localhost/127.0.0.1 behavior.
+
+Release API host gotcha:
+
+- `apps/android/app/build.gradle.kts` currently has release
+  `API_BASE_URL = "https://dondego.app/"`.
+- Production domain is `https://dondego.cl/`.
+- Before Play release, change release API base to `https://dondego.cl/`, or
+  add a Gradle property override for release builds.
+
+Build commands:
+
+```bash
+cd /Users/skif/Documents/GitHub/Afisha-Website/apps/android
+./gradlew :app:assembleDebug
+./gradlew :app:lintDebug
+./gradlew test
+```
+
+Build debug against production:
+
+```bash
+cd /Users/skif/Documents/GitHub/Afisha-Website/apps/android
+./gradlew :app:assembleDebug -PdondegoApiBase=https://dondego.cl/
+```
+
+Build release AAB for Google Play after signing is configured:
+
+```bash
+cd /Users/skif/Documents/GitHub/Afisha-Website/apps/android
+./gradlew :app:bundleRelease -PdondegoApiBase=https://dondego.cl/
+```
+
+Current gotcha: the command above is the desired shape, but the current
+`release` block does not read `dondegoApiBase` yet. Fix
+`apps/android/app/build.gradle.kts` first, or it will still build with the
+hardcoded `https://dondego.app/`.
+
+Signing is not fully wired yet. Do not commit keystores/passwords.
+
+---
+
+## 10. Local development
+
+Repo root:
+
+```bash
+cd /Users/skif/Documents/GitHub/Afisha-Website
+npm install
+npm run dev
+```
+
+For physical phone on the same network:
+
+```bash
+npm run dev -- --hostname 0.0.0.0
+```
+
+For physical phone over USB with ADB reverse:
+
+```bash
+ADB="$HOME/Library/Android/sdk/platform-tools/adb"
+$ADB reverse --remove-all || true
+$ADB reverse tcp:3000 tcp:3000
+$ADB shell am force-stop dondeg.app
+$ADB shell am start -n dondeg.app/.MainActivity
+```
+
+Verify local server from phone through USB:
+
+```bash
+ADB="$HOME/Library/Android/sdk/platform-tools/adb"
+$ADB shell 'curl -sS --max-time 8 http://127.0.0.1:3000/api/events | head -c 220; echo'
+```
+
+Known Android device used during testing:
+
+- Samsung Android device id: `R3CWA0H83HM`
+- Model: `SM_S918U1`
+- Package: `dondeg.app`
+- Activity: `dondeg.app/.MainActivity`
+
+---
+
+## 11. Environment variables
+
+Required or known variables:
+
+```text
+DATABASE_URL
+AUTH_SECRET
+CRON_SECRET
+GOOGLE_CLIENT_ID
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+APP_URL
+ADMIN_SEED_EMAIL
+ADMIN_SEED_PASSWORD
+```
+
+Additional Neon/Vercel Postgres variables created by marketplace integration:
+
+```text
+POSTGRES_USER
+POSTGRES_DATABASE
+PGHOST_UNPOOLED
+PGDATABASE
+NEON_PROJECT_ID
+DATABASE_URL_UNPOOLED
+POSTGRES_URL_NO_SSL
+POSTGRES_PASSWORD
+POSTGRES_URL
+POSTGRES_PRISMA_URL
+POSTGRES_URL_NON_POOLING
+PGPASSWORD
+PGHOST
+PGUSER
+POSTGRES_HOST
+```
+
+Important:
+
+- Do not commit real secrets.
+- `.env.example` documents expected names.
+- Vercel env contains production values.
+- `vercel env pull` does not reveal sensitive values in plain text, so seed
+  scripts that depend on `ADMIN_SEED_PASSWORD` may need the password provided
+  explicitly in shell when updating production admin credentials.
+
+Check env names:
+
+```bash
+npx --yes vercel env ls --scope assemblear-4979s-projects
+```
+
+---
+
+## 12. Production DB operations
+
+Pull production env into a temporary file:
+
+```bash
+cd /Users/skif/Documents/GitHub/Afisha-Website
+tmp=$(mktemp /tmp/vercel-prod-env.XXXXXX)
+npx --yes vercel env pull "$tmp" --environment production --yes
+set -a
+. "$tmp"
+set +a
+rm -f "$tmp"
+```
+
+Apply schema:
+
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+Seed:
+
+```bash
+npm run db:seed
+```
+
+Scraper/sync commands:
+
+```bash
+npm run db:sync-theaters
+npm run db:sync-commerce
+npm run db:scrape
+npm run db:cleanup-events
+```
+
+Do not use destructive DB reset on production unless explicitly intended.
+
+---
+
+## 13. Deployment commands
+
+Link local folder to Vercel project:
+
+```bash
+cd /Users/skif/Documents/GitHub/Afisha-Website
+npx --yes vercel link --yes --project afisha-website
+```
+
+Production redeploy:
+
+```bash
+npx --yes vercel redeploy afisha-website.vercel.app --target production
+```
+
+Verify:
+
+```bash
+curl -I https://dondego.cl
+curl -sS https://dondego.cl/api/events | head -c 500
+npx --yes vercel logs afisha-website.vercel.app --since 10m --level error --expand --limit 20
+```
+
+Vercel cron:
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/scrape-theaters",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}
+```
+
+---
+
+## 14. Tests and checks
+
+Scripts from `package.json`:
+
+```bash
+npm run typecheck
+npm run lint
+npm run test
+npm run test:e2e
+npm run build
+```
+
+Build script:
+
+```bash
+prisma generate && next build
+```
+
+Known state:
+
+- Vitest suite was previously green with 144 unit tests in handoff docs.
+- `next lint` had one pre-existing `<img>` warning in
+  `src/app/events/[id]/page.tsx`.
+- Production was verified after Neon setup and redeploy.
+
+Before any meaningful handoff/PR/deploy, run at minimum:
+
+```bash
+npm run typecheck
+npm run test
+npm run build
+```
+
+For Android:
+
+```bash
+cd apps/android
+./gradlew :app:assembleDebug
+```
+
+---
+
+## 15. Latest changes and context from 2026-07-05
+
+Code changes already on `main`:
+
+- Mobile `/api/v1` endpoints and native Android app added.
+- Android Events tab now includes organized + liked events.
+- Feed likes added.
+- Top-bar menu added/polished.
+- Weekend logic changed to Saturday-Sunday.
+- `/fin-de-semana` dark-mode contrast fixed.
+- Event creation opened to all logged-in users.
+- `/dashboard/*` routes redirect toward `/organizer/*`.
+- Mobile menu tile icons normalized.
+- City banner uses a location pin and smaller font.
+- Google sign-in support added for Android, controlled by `GOOGLE_CLIENT_ID`.
+
+Operational changes done after the latest git commit:
+
+- Vercel project `afisha-website` created/linked.
+- Neon Postgres Free created through Vercel Marketplace.
+- Vercel env variables added for production/preview.
+- Prisma schema pushed to Neon.
+- Production DB seeded.
+- Admin user `admin@dondego.cl` created/updated.
+- Production redeployed successfully.
+- `dondego.cl` and `www.dondego.cl` connected to Vercel and verified.
+- GoDaddy DNS fixed to Vercel A/CNAME records.
+- Production URLs return `200`.
+
+Local working tree note:
+
+- `git status --short` currently shows `M .gitignore`.
+- This was created by Vercel CLI adding `.env*` ignore behavior.
+- Do not revert it casually; it helps prevent secrets from being committed.
+
+---
+
+## 16. Open tasks / next best steps
+
+Highest priority:
+
+1. Fix Android release API base from `https://dondego.app/` to
+   `https://dondego.cl/`, or make it configurable for release builds.
+2. Configure Android release signing for Play App Signing.
+3. Build release AAB and upload to Google Play internal testing.
+4. Add a Privacy Policy page/URL for Play Console.
+5. Configure Stripe production/test keys and webhook endpoint if real checkout
+   testing is needed on production.
+
+Strong follow-ups:
+
+1. Run full production build/tests after any code change:
+   `npm run typecheck && npm run test && npm run build`.
+2. Re-run `npx --yes vercel logs ...` after deploys.
+3. Consider replacing local upload storage with persistent storage
+   (S3/Supabase/Cloudflare R2) because Vercel filesystem is not persistent for
+   uploads.
+4. Add native camera scanning to Android.
+5. Implement native Stripe PaymentSheet only after PaymentIntent endpoints and
+   webhook cases are complete.
+6. Clean up or document duplicate Preview env variables in Vercel if they cause
+   confusion.
+
+---
+
+## 17. Files most likely to matter next
+
+Project docs:
+
+- `README.md`
+- `SESSION-HANDOFF.md`
+- `docs/HANDOFF-dondego-2026-07-05.md`
+- `docs/android-api.md`
+- `docs/android-app-plan.md`
+- `docs/CONTRACT.md`
+
+Core web/app:
+
+- `src/app/page.tsx`
+- `src/app/layout.tsx`
+- `src/app/globals.css`
+- `src/components/layout/Header.tsx`
+- `src/components/layout/LanguageMenu.tsx`
+- `src/components/events/EventCard.tsx`
+- `src/components/events/EventGrid.tsx`
+
+API/business:
+
+- `src/app/api/v1/*`
+- `src/app/api/checkout/route.ts`
+- `src/app/api/webhooks/stripe/route.ts`
+- `src/app/api/scan/route.ts`
+- `src/lib/auth.ts`
+- `src/lib/authz.ts`
+- `src/lib/mobile/events.ts`
+- `src/lib/finance/commission.ts`
+- `src/lib/finance/ledger.ts`
+- `src/lib/payments/finalize.ts`
+- `src/lib/payments/stripe.ts`
+- `src/lib/promotion/pricing.ts`
+- `src/lib/weekend.ts`
+- `src/lib/taxonomy.ts`
+
+Database/scraper:
+
+- `prisma/schema.prisma`
+- `prisma/seed.ts`
+- `prisma/sourceVenues.ts`
+- `prisma/sync-theaters.ts`
+- `prisma/sync-commerce.ts`
+- `prisma/run-scrape.ts`
+- `src/lib/scrapers/index.ts`
+
+Android:
+
+- `apps/android/README.md`
+- `apps/android/app/build.gradle.kts`
+- `apps/android/app/src/main/java/dondeg/app/ui/DondeGoApp.kt`
+- `apps/android/core/network/src/main/java/dondeg/app/core/network/DondeGoApi.kt`
+- `apps/android/core/data/src/main/java/dondeg/app/core/data/*`
+- `apps/android/feature/discover/src/main/java/dondeg/app/feature/discover/*`
+- `apps/android/feature/eventdetail/src/main/java/dondeg/app/feature/eventdetail/EventDetailScreen.kt`
+- `apps/android/feature/tickets/src/main/java/dondeg/app/feature/tickets/*`
+- `apps/android/feature/scanner/src/main/java/dondeg/app/feature/scanner/ScannerScreen.kt`
+
+---
+
+## 18. Quick start prompt for a new chat
+
+Paste this at the start of a new chat:
+
+```text
+We are working on DondeGO in /Users/skif/Documents/GitHub/Afisha-Website.
+Read docs/DondeGO-summary-2026-07-05.md first. Current production is
+https://dondego.cl on Vercel project afisha-website with Neon Postgres.
+Do not commit secrets. The next likely task is Android release/Play internal
+testing; first fix release API_BASE_URL from https://dondego.app/ to
+https://dondego.cl/ and configure signing.
+```

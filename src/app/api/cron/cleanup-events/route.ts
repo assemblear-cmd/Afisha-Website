@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseRetentionDays, runEventCleanup } from '@/lib/event-cleanup';
+import { isCronAuthorized } from '@/lib/cron-auth';
 
 // Protected cron target for DB hygiene. Use ?dryRun=1 locally to inspect the
 // cleanup set without deleting rows.
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-function authorized(req: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  if (req.headers.get('authorization') === `Bearer ${secret}`) return true;
-  if (req.nextUrl.searchParams.get('secret') === secret) return true;
-  return false;
-}
 
 function isDryRun(req: NextRequest): boolean {
   const value = req.nextUrl.searchParams.get('dryRun') ?? req.nextUrl.searchParams.get('dry-run');
@@ -20,7 +13,7 @@ function isDryRun(req: NextRequest): boolean {
 }
 
 export async function GET(req: NextRequest) {
-  if (!authorized(req)) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -39,7 +32,7 @@ export async function GET(req: NextRequest) {
       result,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('Event cleanup failed:', error);
+    return NextResponse.json({ error: 'Event cleanup failed.' }, { status: 500 });
   }
 }

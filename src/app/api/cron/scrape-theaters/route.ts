@@ -1,22 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runScrape } from '@/lib/scrapers';
+import { isCronAuthorized } from '@/lib/cron-auth';
 
 // Daily Vercel Cron target. Protected by CRON_SECRET: Vercel Cron sends
 // `Authorization: Bearer ${CRON_SECRET}`. A `?secret=` query param is accepted
-// for manual triggering during development.
+// only outside production for manual triggering during development.
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-function authorized(req: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  if (req.headers.get('authorization') === `Bearer ${secret}`) return true;
-  if (req.nextUrl.searchParams.get('secret') === secret) return true;
-  return false;
-}
-
 export async function GET(req: NextRequest) {
-  if (!authorized(req)) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
