@@ -57,9 +57,7 @@ export async function POST(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
   }
-  if (user.role !== 'organizer') {
-    return NextResponse.json({ error: 'Only organizers can create events.' }, { status: 403 });
-  }
+  // Any logged-in user can create an event; they become its organizer.
 
   let body: unknown;
   try {

@@ -19,10 +19,12 @@ export async function requireUser(): Promise<SessionUser> {
   return user;
 }
 
+// Every logged-in user can create and manage their own events — there is no
+// separate "organizer" account. Per-event access is still enforced by
+// requireEventOwnership, so a user can only touch events they own (admins
+// bypass ownership). Kept as a named alias so the organizer routes read clearly.
 export async function requireOrganizer(): Promise<SessionUser> {
-  const user = await requireUser();
-  if (!isOrganizer(user)) throw new ApiError(403, 'Organizer access required.');
-  return user;
+  return requireUser();
 }
 
 export async function requireAdmin(): Promise<SessionUser> {

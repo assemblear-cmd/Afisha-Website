@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
 import { Field } from '@/components/ui/Field';
 import { Card } from '@/components/ui/Card';
 import { Container } from '@/components/ui/Container';
@@ -21,7 +20,6 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'visitor' | 'organizer'>('visitor');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -33,7 +31,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
     const payload =
       mode === 'register'
-        ? { name, email, password, role }
+        ? { name, email, password }
         : { email, password };
 
     try {
@@ -113,19 +111,6 @@ export function AuthForm({ mode }: AuthFormProps) {
                 placeholder={mode === 'register' ? 'At least 8 characters' : ''}
               />
             </Field>
-
-            {mode === 'register' && (
-              <Field label="I want to…" htmlFor="role">
-                <Select
-                  id="role"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as 'visitor' | 'organizer')}
-                >
-                  <option value="visitor">Attend events</option>
-                  <option value="organizer">Organize events</option>
-                </Select>
-              </Field>
-            )}
 
             <Button type="submit" size="lg" className="w-full mt-1" disabled={loading}>
               {loading

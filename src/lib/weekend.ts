@@ -42,9 +42,11 @@ export function dateKeyRange(dateKey: string): { start: Date; endExclusive: Date
 export function weekendWindow(todayKey = santiagoDateKey(new Date())): { start: string; end: string } {
   const [year, month, day] = todayKey.split('-').map(Number);
   const dow = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-  const daysUntilFriday = dow === 0 ? -2 : dow === 6 ? -1 : dow === 5 ? 0 : 5 - dow;
-  const start = addDaysToKey(todayKey, daysUntilFriday);
-  return { start, end: addDaysToKey(start, 2) };
+  // Saturday–Sunday window: Monday–Friday jump ahead to the coming Saturday;
+  // Saturday is itself the start; Sunday keeps the weekend that began Saturday.
+  const daysUntilSaturday = dow === 0 ? -1 : 6 - dow;
+  const start = addDaysToKey(todayKey, daysUntilSaturday);
+  return { start, end: addDaysToKey(start, 1) };
 }
 
 export function weekendEventHref(): string {

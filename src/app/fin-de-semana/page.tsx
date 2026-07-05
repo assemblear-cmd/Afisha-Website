@@ -71,7 +71,7 @@ export default async function WeekendPage({ searchParams }: WeekendPageProps) {
 
   return (
     <main className="min-h-screen bg-surface">
-      <div className="border-b border-ink/5 bg-white py-7">
+      <div className="border-b border-ink/5 bg-card py-7">
         <Container>
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
@@ -125,7 +125,7 @@ export default async function WeekendPage({ searchParams }: WeekendPageProps) {
 
       <Container className="py-8">
         {shows.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-ink/15 bg-white/60 px-4 py-12 text-center">
+          <div className="rounded-lg border border-dashed border-ink/15 bg-card/60 px-4 py-12 text-center">
             <p className="text-lg font-semibold text-ink">{t.emptyTitle}</p>
             <p className="mt-2 text-sm text-muted">{t.emptyText}</p>
           </div>

@@ -2,8 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getCurrentUser } from '@/lib/auth';
-import { isOrganizer } from '@/lib/authz';
-import { Card, Container, LinkButton } from '@/components/ui';
+import { Container } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Organizer' };
@@ -18,23 +17,6 @@ const NAV = [
 export default async function OrganizerLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login?redirect=/organizer');
-
-  if (!isOrganizer(user)) {
-    return (
-      <Container className="py-16 max-w-lg text-center">
-        <Card className="p-8 space-y-4">
-          <h1 className="text-2xl font-bold text-ink">Organizer access required</h1>
-          <p className="text-body">
-            Your account is a customer account. Register an organizer account to create and manage
-            events.
-          </p>
-          <LinkButton href="/register" variant="primary">
-            Register as organizer
-          </LinkButton>
-        </Card>
-      </Container>
-    );
-  }
 
   return (
     <Container className="py-8">
