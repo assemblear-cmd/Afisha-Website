@@ -28,7 +28,7 @@ Blocks (and status):
 | Block | Endpoint | Status |
 |---|---|---|
 | Teatros | `GET /api/repertoire` | ✅ live (shape below) |
-| Lectures (Charlas) | `GET /api/lectures` | ⏳ shape TBD per block |
+| Lectures | `GET /api/lectures` | ✅ shape defined (below); frontend ready |
 | Food (Gastronomía) | `GET /api/food` | ⏳ shape TBD per block |
 | Films (Cine) | `GET /api/films` | ⏳ shape TBD per block |
 | … | `GET /api/{block}` | … |
@@ -73,6 +73,33 @@ Array, grouped by theater:
 ```
 
 Consumed by `src/app/teatros/page.tsx`.
+
+## Shape — Lectures (`GET /api/lectures`)
+
+Flat array of talks / conferences / workshops:
+
+```jsonc
+[
+  {
+    "id": 11,
+    "title": "Foundations of Machine Learning",
+    "speaker": "Dr. Ada Moore",
+    "summary": "An accessible intro to ML for builders.",
+    "starts_at": "2026-08-12T18:30:00-04:00",
+    "venue": "Aula Magna, Universidad de Chile",
+    "city": "Santiago",
+    "topic": "Tech",
+    "language": "es",
+    "is_online": false,
+    "price": 0,
+    "currency": "CLP",
+    "url": "https://example.org/lectures/11",
+    "image_url": "https://example.org/img/lec11.jpg"
+  }
+]
+```
+
+Consumed by `src/app/lectures/page.tsx`. Notes: `is_online: true` → an "Online" badge; `price: 0`/`null` → "Free"/blank; `topic` → a coral badge; `speaker`, `venue`, `city`, `image_url`, `url` are all nullable.
 
 ## How a new block gets wired (the loop)
 
