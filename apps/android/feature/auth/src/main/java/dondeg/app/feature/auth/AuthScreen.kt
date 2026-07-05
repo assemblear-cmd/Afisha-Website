@@ -164,31 +164,6 @@ fun AuthScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         )
 
-        if (state.registerMode) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.auth_organizer_toggle),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                    Text(
-                        text = stringResource(R.string.auth_organizer_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = state.asOrganizer,
-                    onCheckedChange = viewModel::onOrganizerToggle,
-                )
-            }
-        }
-
         state.error?.let { error ->
             Text(
                 text = error,
@@ -254,7 +229,6 @@ internal data class AuthUiState(
     val name: String = "",
     val email: String = "",
     val password: String = "",
-    val asOrganizer: Boolean = false,
     val loading: Boolean = false,
     val error: String? = null,
     val done: Boolean = false,
@@ -269,7 +243,6 @@ internal class AuthViewModel(
     fun onName(value: String) = _state.update { it.copy(name = value, error = null) }
     fun onEmail(value: String) = _state.update { it.copy(email = value, error = null) }
     fun onPassword(value: String) = _state.update { it.copy(password = value, error = null) }
-    fun onOrganizerToggle(value: Boolean) = _state.update { it.copy(asOrganizer = value) }
 
     fun toggleMode() = _state.update {
         it.copy(registerMode = !it.registerMode, error = null)
@@ -291,7 +264,9 @@ internal class AuthViewModel(
                     name = snapshot.name,
                     email = snapshot.email,
                     password = snapshot.password,
-                    asOrganizer = snapshot.asOrganizer,
+                    // Everyone registers as a normal user; any signed-in user can
+                    // still create their own events.
+                    asOrganizer = false,
                 )
             } else {
                 repository.login(email = snapshot.email, password = snapshot.password)

@@ -4,6 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.HTTP
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -46,6 +47,20 @@ interface DondeGoApi {
     suspend fun me(): MeResponse
 
     // --- Account tickets (Bearer required) ---
+
+    // --- Events tab: organized events + liked feed items (Bearer required) ---
+
+    @GET("api/v1/me/events")
+    suspend fun myEvents(): EventListResponse
+
+    @GET("api/v1/me/likes")
+    suspend fun myLikes(): LikesResponse
+
+    @POST("api/v1/me/likes")
+    suspend fun like(@Body body: LikeRequest): LikeResponse
+
+    @HTTP(method = "DELETE", path = "api/v1/me/likes", hasBody = true)
+    suspend fun unlike(@Body body: LikeRequest): LikeResponse
 
     @GET("api/v1/me/tickets")
     suspend fun myTickets(
@@ -191,6 +206,23 @@ data class AuthResponse(val token: String, val user: UserDto)
 
 @Serializable
 data class MeResponse(val user: UserDto? = null)
+
+// --- Events tab / likes DTOs ---
+
+@Serializable
+data class EventListResponse(val items: List<EventSummaryDto> = emptyList())
+
+@Serializable
+data class LikesResponse(
+    val items: List<EventSummaryDto> = emptyList(),
+    val keys: List<String> = emptyList(),
+)
+
+@Serializable
+data class LikeRequest(val id: String)
+
+@Serializable
+data class LikeResponse(val ok: Boolean = true, val liked: Boolean = false)
 
 // --- Ticket DTOs ---
 

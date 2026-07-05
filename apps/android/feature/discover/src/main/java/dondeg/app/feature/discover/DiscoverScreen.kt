@@ -23,7 +23,9 @@ import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items as rowItems
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
@@ -32,6 +34,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -80,6 +83,8 @@ import kotlinx.coroutines.launch
 fun DiscoverScreen(
     discoveryRepository: DiscoveryRepository,
     eventsRepository: EventsRepository,
+    likedKeys: Set<String>,
+    onToggleLike: (String) -> Unit,
     onOpenEvent: (EventKind, String) -> Unit,
 ) {
     val viewModel = viewModel {
@@ -106,6 +111,8 @@ fun DiscoverScreen(
                 DiscoverContent(
                     feed = feed,
                     state = state,
+                    likedKeys = likedKeys,
+                    onToggleLike = onToggleLike,
                     onQueryChange = viewModel::onQuery,
                     onCategorySelected = viewModel::onCategory,
                     onOpenEvent = onOpenEvent,
@@ -184,6 +191,8 @@ private fun MessageState(title: String, body: String) {
 private fun DiscoverContent(
     feed: HomeFeed,
     state: DiscoverUiState,
+    likedKeys: Set<String>,
+    onToggleLike: (String) -> Unit,
     onQueryChange: (String) -> Unit,
     onCategorySelected: (String?) -> Unit,
     onOpenEvent: (EventKind, String) -> Unit,
@@ -261,7 +270,12 @@ private fun DiscoverContent(
                 )
             }
             else -> gridItems(items = state.listing, key = { it.id }) { event ->
-                EventTile(event = event, onClick = { onOpenEvent(event.kind, event.id) })
+                EventTile(
+                    event = event,
+                    liked = likedKeys.contains(event.id),
+                    onToggleLike = { onToggleLike(event.id) },
+                    onClick = { onOpenEvent(event.kind, event.id) },
+                )
             }
         }
     }
@@ -468,7 +482,12 @@ private fun HeroTile(event: EventSummary, onClick: () -> Unit) {
 }
 
 @Composable
-private fun EventTile(event: EventSummary, onClick: () -> Unit) {
+internal fun EventTile(
+    event: EventSummary,
+    liked: Boolean,
+    onToggleLike: () -> Unit,
+    onClick: () -> Unit,
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -489,6 +508,18 @@ private fun EventTile(event: EventSummary, onClick: () -> Unit) {
                     .align(Alignment.TopStart)
                     .padding(8.dp),
             )
+            IconButton(
+                onClick = onToggleLike,
+                modifier = Modifier.align(Alignment.TopEnd),
+            ) {
+                Icon(
+                    imageVector = if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = stringResource(
+                        if (liked) R.string.discover_unlike else R.string.discover_like,
+                    ),
+                    tint = if (liked) DondeGoCoral else Color.White,
+                )
+            }
         }
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),

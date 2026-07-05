@@ -18,4 +18,14 @@
     <string name="discover_unknown_venue">Venue TBA</string>
     <string name="discover_badge_native">DondeGO tickets</string>
     <string name="discover_badge_external">External source</string>
+    <string name="discover_like">Like</string>
+    <string name="discover_unlike">Remove like</string>
+    <string name="events_my_title">My events</string>
+    <string name="events_my_empty">You don\'t organize any events yet.</string>
+    <string name="events_liked_title">Liked</string>
+    <string name="events_liked_empty">Like events in the feed to save them here.</string>
+    <string name="events_error">Could not load your events.</string>
+    <string name="events_signed_out_title">Log in to see your events</string>
+    <string name="events_signed_out_body">Your organized events and liked events live in your account.</string>
+    <string name="events_sign_in">Log in</string>
 </resources>

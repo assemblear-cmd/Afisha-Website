@@ -28,6 +28,21 @@ model User {
   ledgerTransactions     LedgerTransaction[]
   payoutRequests         PayoutRequest[]         @relation("PayoutOrganizer")
   payoutsReviewed        PayoutRequest[]         @relation("PayoutReviewer")
+  likes                  EventLike[]
+}
+
+// A user's "like" on a feed item. Targets are stored as the mobile wire-id
+// ("event_<id>" for native organizer events, "show_<id>" for scraped shows),
+// which is already globally unique across both kinds.
+model EventLike {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetKey String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, targetKey])
+  @@index([userId])
 }
 
 // Lifecycle of an organizer-submitted event. Legacy rows (created before the

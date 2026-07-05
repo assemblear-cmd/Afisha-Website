@@ -18,4 +18,14 @@
     <string name="discover_unknown_venue">Lugar por confirmar</string>
     <string name="discover_badge_native">Entradas DondeGO</string>
     <string name="discover_badge_external">Fuente externa</string>
+    <string name="discover_like">Me gusta</string>
+    <string name="discover_unlike">Quitar me gusta</string>
+    <string name="events_my_title">Mis eventos</string>
+    <string name="events_my_empty">Aún no organizas ningún evento.</string>
+    <string name="events_liked_title">Me gusta</string>
+    <string name="events_liked_empty">Dale me gusta a eventos en el feed para guardarlos aquí.</string>
+    <string name="events_error">No se pudieron cargar tus eventos.</string>
+    <string name="events_signed_out_title">Inicia sesión para ver tus eventos</string>
+    <string name="events_signed_out_body">Tus eventos organizados y con me gusta viven en tu cuenta.</string>
+    <string name="events_sign_in">Iniciar sesión</string>
 </resources>

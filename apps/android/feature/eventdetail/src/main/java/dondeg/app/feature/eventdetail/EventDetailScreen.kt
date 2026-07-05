@@ -70,8 +70,10 @@ fun EventDetailScreen(
     kind: EventKind,
     id: String,
     repository: EventsRepository,
+    currentUserId: String?,
     nativeWebUrl: (String) -> String,
     onOpenExternal: (String) -> Unit,
+    onOpenOrganizer: (String) -> Unit,
     onBack: () -> Unit,
 ) {
     val viewModel = viewModel(key = "$kind/$id") {
@@ -139,8 +141,10 @@ fun EventDetailScreen(
             }
             is EventDetailUiState.Content -> DetailContent(
                 detail = current.detail,
+                currentUserId = currentUserId,
                 nativeWebUrl = nativeWebUrl,
                 onOpenExternal = onOpenExternal,
+                onOpenOrganizer = onOpenOrganizer,
             )
         }
     }
@@ -149,9 +153,14 @@ fun EventDetailScreen(
 @Composable
 private fun DetailContent(
     detail: EventDetail,
+    currentUserId: String?,
     nativeWebUrl: (String) -> String,
     onOpenExternal: (String) -> Unit,
+    onOpenOrganizer: (String) -> Unit,
 ) {
+    val isOwner = detail.kind == EventKind.Native &&
+        currentUserId != null &&
+        detail.organizer?.id == currentUserId
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -250,6 +259,15 @@ private fun DetailContent(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+
+            if (isOwner) {
+                Button(
+                    onClick = { onOpenOrganizer(detail.id.removePrefix("event_")) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.event_detail_enter_organizer))
+                }
             }
 
             if (detail.kind == EventKind.Native) {

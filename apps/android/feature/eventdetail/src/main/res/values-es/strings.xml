@@ -18,4 +18,5 @@
     <string name="event_detail_source_label">Fuente</string>
     <string name="event_detail_organizer_label">Organizado por %1$s</string>
     <string name="event_detail_free_badge">Evento gratis</string>
+    <string name="event_detail_enter_organizer">Entrar como organizador</string>
 </resources>

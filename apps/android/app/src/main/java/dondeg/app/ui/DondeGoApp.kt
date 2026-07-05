@@ -1,15 +1,16 @@
 package dondeg.app.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -29,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -55,10 +57,13 @@ import dondeg.app.feature.auth.AuthScreen
 import dondeg.app.feature.discover.DiscoverScreen
 import dondeg.app.feature.eventdetail.EventDetailScreen
 import dondeg.app.feature.organizer.OrganizerScreen
+import dondeg.app.feature.discover.EventsScreen
 import dondeg.app.feature.scanner.ScannerScreen
 import dondeg.app.feature.tickets.TicketsScreen
+import kotlinx.coroutines.launch
 
 private const val ROUTE_DISCOVER = "discover"
+private const val ROUTE_EVENTS = "events"
 private const val ROUTE_TICKETS = "tickets"
 private const val ROUTE_ORGANIZER = "organizer"
 private const val ROUTE_SCANNER = "scanner"
@@ -83,6 +88,18 @@ fun DondeGoApp(container: DondeGoAppContainer) {
     // sessions are cleared so role-gated UI falls back to logged-out state.
     LaunchedEffect(Unit) { container.authRepository.refresh() }
 
+    val scope = rememberCoroutineScope()
+    val likedKeys by container.likesRepository.likedKeys.collectAsStateWithLifecycle()
+    // Keep the feed hearts in sync with the account whenever the session changes.
+    LaunchedEffect(session) { container.likesRepository.refresh() }
+    val onToggleLike: (String) -> Unit = { wireId ->
+        if (session == null) {
+            navController.navigate(ROUTE_AUTH)
+        } else {
+            scope.launch { container.likesRepository.toggle(wireId) }
+        }
+    }
+
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val destinations = remember(session) { visibleDestinations(session) }
 
@@ -106,6 +123,7 @@ fun DondeGoApp(container: DondeGoAppContainer) {
                     title = {
                         Text(
                             text = stringResource(R.string.app_name),
+                            modifier = Modifier.clickable { switchTab(ROUTE_DISCOVER) },
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -120,14 +138,13 @@ fun DondeGoApp(container: DondeGoAppContainer) {
                                     fontWeight = FontWeight.SemiBold,
                                 )
                             }
-                        } else {
-                            IconButton(onClick = { container.authRepository.logout() }) {
-                                Icon(
-                                    Icons.AutoMirrored.Outlined.Logout,
-                                    contentDescription = stringResource(R.string.account_sign_out),
-                                )
-                            }
                         }
+                        MainMenu(
+                            session = session,
+                            onNavigate = { route -> switchTab(route) },
+                            onSignIn = { navController.navigate(ROUTE_AUTH) },
+                            onSignOut = { container.authRepository.logout() },
+                        )
                     },
                 )
             },
@@ -153,9 +170,23 @@ fun DondeGoApp(container: DondeGoAppContainer) {
                     DiscoverScreen(
                         discoveryRepository = container.discoveryRepository,
                         eventsRepository = container.eventsRepository,
+                        likedKeys = likedKeys,
+                        onToggleLike = onToggleLike,
                         onOpenEvent = { kind, id ->
                             navController.navigate("detail/${kind.name}/${id}")
                         },
+                    )
+                }
+                composable(ROUTE_EVENTS) {
+                    EventsScreen(
+                        likesRepository = container.likesRepository,
+                        likedKeys = likedKeys,
+                        onToggleLike = onToggleLike,
+                        onOpenEvent = { kind, id ->
+                            navController.navigate("detail/${kind.name}/${id}")
+                        },
+                        isSignedIn = session != null,
+                        onSignIn = { navController.navigate(ROUTE_AUTH) },
                     )
                 }
                 composable(
@@ -174,8 +205,12 @@ fun DondeGoApp(container: DondeGoAppContainer) {
                         kind = kind,
                         id = id,
                         repository = container.eventsRepository,
+                        currentUserId = session?.id,
                         nativeWebUrl = { path -> container.webUrl(path) },
                         onOpenExternal = { url -> uriHandler.openUri(url) },
+                        onOpenOrganizer = { rawId ->
+                            uriHandler.openUri(container.webUrl("/organizer/events/$rawId"))
+                        },
                         onBack = { navController.popBackStack() },
                     )
                 }
@@ -257,10 +292,74 @@ private fun LanguageMenu() {
     }
 }
 
+/**
+ * Top-bar navigation + account menu. Gives access to every section (including
+ * the ones not in the bottom bar, like My tickets) and sign in / sign out.
+ */
+@Composable
+private fun MainMenu(
+    session: SessionUser?,
+    onNavigate: (String) -> Unit,
+    onSignIn: () -> Unit,
+    onSignOut: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                imageVector = Icons.Outlined.Menu,
+                contentDescription = stringResource(R.string.menu_more),
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.nav_home)) },
+                onClick = { expanded = false; onNavigate(ROUTE_DISCOVER) },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.nav_events)) },
+                onClick = { expanded = false; onNavigate(ROUTE_EVENTS) },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.nav_tickets)) },
+                onClick = { expanded = false; onNavigate(ROUTE_TICKETS) },
+            )
+            val role = session?.role
+            if (role == UserRole.Organizer || role == UserRole.Admin) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.nav_organizer)) },
+                    onClick = { expanded = false; onNavigate(ROUTE_ORGANIZER) },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.nav_scanner)) },
+                    onClick = { expanded = false; onNavigate(ROUTE_SCANNER) },
+                )
+            }
+            if (role == UserRole.Admin) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.nav_admin)) },
+                    onClick = { expanded = false; onNavigate(ROUTE_ADMIN) },
+                )
+            }
+            if (session == null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.account_sign_in)) },
+                    onClick = { expanded = false; onSignIn() },
+                )
+            } else {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.account_sign_out)) },
+                    onClick = { expanded = false; onSignOut() },
+                )
+            }
+        }
+    }
+}
+
 /** Bottom-bar destinations, filtered by the signed-in role. */
 private fun visibleDestinations(session: SessionUser?): List<Destination> = buildList {
     add(Destination(ROUTE_DISCOVER, R.string.nav_home, Icons.Outlined.Home))
-    add(Destination(ROUTE_TICKETS, R.string.nav_tickets, Icons.Outlined.ConfirmationNumber))
+    add(Destination(ROUTE_EVENTS, R.string.nav_events, Icons.Outlined.Event))
     val role = session?.role
     if (role == UserRole.Organizer || role == UserRole.Admin) {
         add(Destination(ROUTE_ORGANIZER, R.string.nav_organizer, Icons.Outlined.Dashboard))
