@@ -1,0 +1,24 @@
+<resources>
+    <string name="tickets_title">My tickets</string>
+    <string name="tickets_loading">Loading your tickets…</string>
+    <string name="tickets_signed_out_title">Sign in to see your tickets</string>
+    <string name="tickets_signed_out_body">Your DondeGO tickets and QR codes live in your account.</string>
+    <string name="tickets_sign_in">Sign in</string>
+    <string name="tickets_empty_title">No tickets yet</string>
+    <string name="tickets_empty_body">When you buy a DondeGO ticket it appears here with its QR code.</string>
+    <string name="tickets_error_title">Could not load tickets</string>
+    <string name="tickets_retry">Retry</string>
+    <string name="tickets_back">Back</string>
+    <string name="tickets_tba">Date TBA</string>
+    <string name="tickets_detail_title">Your ticket</string>
+    <string name="tickets_manual_code">Manual code: %1$s</string>
+    <string name="tickets_qr_disabled">This ticket is %1$s — the QR code is disabled.</string>
+    <string name="tickets_checked_in">Checked in at %1$s</string>
+    <string name="tickets_status_issued">Valid</string>
+    <string name="tickets_status_checked_in">Checked in</string>
+    <string name="tickets_status_cancelled">Cancelled</string>
+    <string name="tickets_status_refunded">Refunded</string>
+    <string name="tickets_status_expired">Expired</string>
+    <string name="tickets_status_invalidated">Invalidated</string>
+    <string name="tickets_status_unknown">Unknown</string>
+</resources>

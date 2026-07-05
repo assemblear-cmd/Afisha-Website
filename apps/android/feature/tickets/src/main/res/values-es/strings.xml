@@ -1,0 +1,24 @@
+<resources>
+    <string name="tickets_title">Mis entradas</string>
+    <string name="tickets_loading">Cargando tus entradas…</string>
+    <string name="tickets_signed_out_title">Inicia sesión para ver tus entradas</string>
+    <string name="tickets_signed_out_body">Tus entradas y códigos QR de DondeGO viven en tu cuenta.</string>
+    <string name="tickets_sign_in">Iniciar sesión</string>
+    <string name="tickets_empty_title">Aún no tienes entradas</string>
+    <string name="tickets_empty_body">Cuando compres una entrada DondeGO aparecerá aquí con su código QR.</string>
+    <string name="tickets_error_title">No se pudieron cargar las entradas</string>
+    <string name="tickets_retry">Reintentar</string>
+    <string name="tickets_back">Atrás</string>
+    <string name="tickets_tba">Fecha por confirmar</string>
+    <string name="tickets_detail_title">Tu entrada</string>
+    <string name="tickets_manual_code">Código manual: %1$s</string>
+    <string name="tickets_qr_disabled">Esta entrada está %1$s — el código QR está deshabilitado.</string>
+    <string name="tickets_checked_in">Registrada a las %1$s</string>
+    <string name="tickets_status_issued">Válida</string>
+    <string name="tickets_status_checked_in">Registrada</string>
+    <string name="tickets_status_cancelled">Cancelada</string>
+    <string name="tickets_status_refunded">Reembolsada</string>
+    <string name="tickets_status_expired">Expirada</string>
+    <string name="tickets_status_invalidated">Invalidada</string>
+    <string name="tickets_status_unknown">Desconocida</string>
+</resources>

@@ -1,0 +1,8 @@
+<resources>
+    <string name="admin_title">Admin</string>
+    <string name="admin_denied_title">Admin access only</string>
+    <string name="admin_denied_body">Moderation and payout review require an admin account.</string>
+    <string name="admin_dashboard_title">Moderation &amp; payouts</string>
+    <string name="admin_dashboard_body">Review submitted events, approve or reject with notes, complete published events, and process payouts. These actions run on the DondeGO admin console, guarded server-side.</string>
+    <string name="admin_open_web">Open admin console</string>
+</resources>

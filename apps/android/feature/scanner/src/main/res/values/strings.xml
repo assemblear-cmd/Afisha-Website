@@ -1,0 +1,22 @@
+<resources>
+    <string name="scanner_title">Scanner</string>
+    <string name="scanner_signed_out_title">Sign in to scan tickets</string>
+    <string name="scanner_signed_out_body">Check-in access is granted by event organizers and admins.</string>
+    <string name="scanner_sign_in">Sign in</string>
+    <string name="scanner_loading">Loading your events…</string>
+    <string name="scanner_no_events_title">No events to scan</string>
+    <string name="scanner_no_events_body">You can scan events you organize, or ones where you have an active staff grant.</string>
+    <string name="scanner_error_title">Could not load events</string>
+    <string name="scanner_retry">Retry</string>
+    <string name="scanner_pick_event">Choose an event to check in tickets</string>
+    <string name="scanner_back">Back to events</string>
+    <string name="scanner_tba">Date TBA</string>
+    <string name="scanner_disabled">Scanner add-on required for this free event</string>
+    <string name="scanner_manual_title">Enter or scan a ticket code</string>
+    <string name="scanner_manual_hint">Ticket code (DGO1.…)</string>
+    <string name="scanner_manual_note">Paste the code from the ticket QR, or use a camera scanner app to read it. Check-in is verified on the server.</string>
+    <string name="scanner_submit">Check in ticket</string>
+    <string name="scanner_scan_again">Scan another</string>
+    <string name="scanner_attendee">Attendee: %1$s</string>
+    <string name="scanner_ticket_type">Ticket: %1$s</string>
+</resources>

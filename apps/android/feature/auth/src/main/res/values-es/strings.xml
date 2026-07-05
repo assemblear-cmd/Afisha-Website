@@ -1,0 +1,22 @@
+<resources>
+    <string name="auth_login_title">Bienvenido de vuelta</string>
+    <string name="auth_login_subtitle">Inicia sesión para ver tus entradas y gestionar eventos.</string>
+    <string name="auth_register_title">Crea tu cuenta</string>
+    <string name="auth_register_subtitle">Una cuenta para entradas, eventos y control de acceso.</string>
+    <string name="auth_name">Nombre</string>
+    <string name="auth_email">Correo electrónico</string>
+    <string name="auth_password">Contraseña</string>
+    <string name="auth_password_hint">Al menos 8 caracteres</string>
+    <string name="auth_organizer_toggle">Organizo eventos</string>
+    <string name="auth_organizer_hint">Las cuentas de organizador pueden crear y gestionar eventos.</string>
+    <string name="auth_submit_login">Iniciar sesión</string>
+    <string name="auth_submit_register">Crear cuenta</string>
+    <string name="auth_switch_to_register">¿Nuevo en DondeGO? Crea una cuenta</string>
+    <string name="auth_switch_to_login">¿Ya tienes cuenta? Inicia sesión</string>
+    <string name="auth_error_fill_fields">Completa todos los campos para continuar.</string>
+    <string name="auth_divider_or">o</string>
+    <string name="auth_google_button">Continuar con Google</string>
+    <string name="auth_google_unavailable">El inicio de sesión con Google no está configurado en esta versión.</string>
+    <string name="auth_google_error">No se pudo iniciar sesión con Google. Inténtalo de nuevo.</string>
+    <string name="auth_google_cancelled">Se canceló el inicio de sesión con Google.</string>
+</resources>

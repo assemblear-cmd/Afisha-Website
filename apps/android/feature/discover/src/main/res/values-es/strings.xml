@@ -1,0 +1,21 @@
+<resources>
+    <string name="discover_title">Buscar eventos</string>
+    <string name="discover_loading">Cargando eventos…</string>
+    <string name="discover_empty">No se encontraron eventos.</string>
+    <string name="discover_empty_body">Prueba con otra categoría o término de búsqueda.</string>
+    <string name="discover_error">No se pudieron cargar los eventos.</string>
+    <string name="discover_error_body">Revisa tu conexión e inténtalo de nuevo.</string>
+    <string name="discover_retry">Reintentar</string>
+    <string name="discover_city">Santiago</string>
+    <string name="discover_search_hint">Busca eventos, lugares, categorías</string>
+    <string name="discover_all_categories">Todos</string>
+    <string name="discover_popular_title">Populares ahora</string>
+    <string name="discover_popular_body">Una selección de eventos destacados del feed de DondeGO.</string>
+    <string name="discover_upcoming_title">Próximos eventos</string>
+    <string name="discover_upcoming_body_all">Novedades ordenadas por fecha.</string>
+    <string name="discover_upcoming_body_category">Filtrado por %1$s.</string>
+    <string name="discover_tba">Fecha por confirmar</string>
+    <string name="discover_unknown_venue">Lugar por confirmar</string>
+    <string name="discover_badge_native">Entradas DondeGO</string>
+    <string name="discover_badge_external">Fuente externa</string>
+</resources>

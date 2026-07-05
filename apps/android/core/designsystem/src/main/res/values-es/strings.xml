@@ -1,0 +1,28 @@
+<resources>
+    <!-- Etiquetas de precio compartidas -->
+    <string name="ds_price_free">Gratis</string>
+    <string name="ds_price_tba">Precio por confirmar</string>
+    <string name="ds_price_from">Desde %1$s</string>
+
+    <!-- Etiquetas de taxonomía de eventos (slugs de src/lib/taxonomy.ts). -->
+    <string name="ds_category_concierto">Concierto</string>
+    <string name="ds_category_festival">Festival</string>
+    <string name="ds_category_exposicion">Exposición</string>
+    <string name="ds_category_charla">Charla</string>
+    <string name="ds_category_obra_de_teatro">Teatro</string>
+    <string name="ds_category_evento_interactivo">Interactivo</string>
+    <string name="ds_category_comedia">Comedia</string>
+    <string name="ds_category_fiesta_y_vida_nocturna">Vida nocturna</string>
+    <string name="ds_category_networking">Networking</string>
+    <string name="ds_category_negocios">Negocios</string>
+    <string name="ds_category_tecnologia">Tecnología</string>
+    <string name="ds_category_gastronomia">Gastronomía</string>
+    <string name="ds_category_curso_taller">Taller</string>
+    <string name="ds_category_salud_y_bienestar">Bienestar</string>
+    <string name="ds_category_deportes">Deportes</string>
+    <string name="ds_category_familia">Familia</string>
+    <string name="ds_category_cine">Cine</string>
+    <string name="ds_category_beneficencia">Beneficencia</string>
+    <string name="ds_category_religion_espiritualidad">Espiritualidad</string>
+    <string name="ds_category_otros">Otros</string>
+</resources>

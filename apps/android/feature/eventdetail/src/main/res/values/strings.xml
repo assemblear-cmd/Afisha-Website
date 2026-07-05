@@ -1,0 +1,21 @@
+<resources>
+    <string name="event_detail_title">Event details</string>
+    <string name="event_detail_back">Back</string>
+    <string name="event_detail_loading">Loading event…</string>
+    <string name="event_detail_error">Could not load this event.</string>
+    <string name="event_detail_retry">Retry</string>
+    <string name="event_detail_tba">Date TBA</string>
+    <string name="event_detail_venue_tba">Venue TBA</string>
+    <string name="event_detail_about">About</string>
+    <string name="event_detail_tickets">Tickets</string>
+    <string name="event_detail_remaining">%1$d left</string>
+    <string name="event_detail_sold_out">Sold out</string>
+    <string name="event_detail_not_on_sale">Not on sale</string>
+    <string name="event_detail_buy_dondego">Buy tickets on DondeGO</string>
+    <string name="event_detail_buy_note">Checkout opens the secure DondeGO website. In-app payment is coming soon.</string>
+    <string name="event_detail_open_source">Get tickets at the source</string>
+    <string name="event_detail_source_note">Ticket sales for this event happen on the original site, not on DondeGO.</string>
+    <string name="event_detail_source_label">Source</string>
+    <string name="event_detail_organizer_label">Organized by %1$s</string>
+    <string name="event_detail_free_badge">Free event</string>
+</resources>

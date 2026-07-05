@@ -1,0 +1,21 @@
+<resources>
+    <string name="discover_title">Find events</string>
+    <string name="discover_loading">Loading events…</string>
+    <string name="discover_empty">No events found.</string>
+    <string name="discover_empty_body">Try another category or search term.</string>
+    <string name="discover_error">Could not load events.</string>
+    <string name="discover_error_body">Check your connection and try again.</string>
+    <string name="discover_retry">Retry</string>
+    <string name="discover_city">Santiago</string>
+    <string name="discover_search_hint">Search events, venues, categories</string>
+    <string name="discover_all_categories">All</string>
+    <string name="discover_popular_title">Popular now</string>
+    <string name="discover_popular_body">A quick row of standout events from the DondeGO feed.</string>
+    <string name="discover_upcoming_title">Upcoming events</string>
+    <string name="discover_upcoming_body_all">Fresh picks sorted by date.</string>
+    <string name="discover_upcoming_body_category">Filtered by %1$s.</string>
+    <string name="discover_tba">Date TBA</string>
+    <string name="discover_unknown_venue">Venue TBA</string>
+    <string name="discover_badge_native">DondeGO tickets</string>
+    <string name="discover_badge_external">External source</string>
+</resources>

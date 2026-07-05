@@ -1,0 +1,22 @@
+<resources>
+    <string name="scanner_title">Escáner</string>
+    <string name="scanner_signed_out_title">Inicia sesión para escanear entradas</string>
+    <string name="scanner_signed_out_body">El acceso al control lo otorgan los organizadores y administradores.</string>
+    <string name="scanner_sign_in">Iniciar sesión</string>
+    <string name="scanner_loading">Cargando tus eventos…</string>
+    <string name="scanner_no_events_title">No hay eventos para escanear</string>
+    <string name="scanner_no_events_body">Puedes escanear eventos que organizas o donde tengas un permiso de personal activo.</string>
+    <string name="scanner_error_title">No se pudieron cargar los eventos</string>
+    <string name="scanner_retry">Reintentar</string>
+    <string name="scanner_pick_event">Elige un evento para registrar entradas</string>
+    <string name="scanner_back">Volver a eventos</string>
+    <string name="scanner_tba">Fecha por confirmar</string>
+    <string name="scanner_disabled">Este evento gratis requiere el complemento de escáner</string>
+    <string name="scanner_manual_title">Ingresa o escanea un código de entrada</string>
+    <string name="scanner_manual_hint">Código de entrada (DGO1.…)</string>
+    <string name="scanner_manual_note">Pega el código del QR de la entrada o usa una app de escáner para leerlo. El registro se verifica en el servidor.</string>
+    <string name="scanner_submit">Registrar entrada</string>
+    <string name="scanner_scan_again">Escanear otra</string>
+    <string name="scanner_attendee">Asistente: %1$s</string>
+    <string name="scanner_ticket_type">Entrada: %1$s</string>
+</resources>

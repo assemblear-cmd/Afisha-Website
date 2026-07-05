@@ -1,0 +1,29 @@
+<resources>
+    <!-- Shared price labels -->
+    <string name="ds_price_free">Free</string>
+    <string name="ds_price_tba">Price TBA</string>
+    <string name="ds_price_from">From %1$s</string>
+
+    <!-- Event taxonomy labels (slugs from src/lib/taxonomy.ts on the backend).
+         English-first; Spanish arrives later as values-es without code changes. -->
+    <string name="ds_category_concierto">Concert</string>
+    <string name="ds_category_festival">Festival</string>
+    <string name="ds_category_exposicion">Exhibition</string>
+    <string name="ds_category_charla">Talk</string>
+    <string name="ds_category_obra_de_teatro">Theater</string>
+    <string name="ds_category_evento_interactivo">Interactive</string>
+    <string name="ds_category_comedia">Comedy</string>
+    <string name="ds_category_fiesta_y_vida_nocturna">Nightlife</string>
+    <string name="ds_category_networking">Networking</string>
+    <string name="ds_category_negocios">Business</string>
+    <string name="ds_category_tecnologia">Technology</string>
+    <string name="ds_category_gastronomia">Food &amp; Drink</string>
+    <string name="ds_category_curso_taller">Workshop</string>
+    <string name="ds_category_salud_y_bienestar">Wellness</string>
+    <string name="ds_category_deportes">Sports</string>
+    <string name="ds_category_familia">Family</string>
+    <string name="ds_category_cine">Cinema</string>
+    <string name="ds_category_beneficencia">Charity</string>
+    <string name="ds_category_religion_espiritualidad">Spirituality</string>
+    <string name="ds_category_otros">Other</string>
+</resources>

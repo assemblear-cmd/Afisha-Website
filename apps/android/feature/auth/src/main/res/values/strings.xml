@@ -1,0 +1,22 @@
+<resources>
+    <string name="auth_login_title">Welcome back</string>
+    <string name="auth_login_subtitle">Sign in to see your tickets and manage events.</string>
+    <string name="auth_register_title">Create your account</string>
+    <string name="auth_register_subtitle">One account for tickets, events, and check-in.</string>
+    <string name="auth_name">Name</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_password_hint">At least 8 characters</string>
+    <string name="auth_organizer_toggle">I organize events</string>
+    <string name="auth_organizer_hint">Organizer accounts can create and manage events.</string>
+    <string name="auth_submit_login">Log in</string>
+    <string name="auth_submit_register">Create account</string>
+    <string name="auth_switch_to_register">New to DondeGO? Create an account</string>
+    <string name="auth_switch_to_login">Already have an account? Log in</string>
+    <string name="auth_error_fill_fields">Fill in all fields to continue.</string>
+    <string name="auth_divider_or">or</string>
+    <string name="auth_google_button">Continue with Google</string>
+    <string name="auth_google_unavailable">Google sign-in isn\'t configured for this build.</string>
+    <string name="auth_google_error">Google sign-in failed. Please try again.</string>
+    <string name="auth_google_cancelled">Google sign-in was cancelled.</string>
+</resources>

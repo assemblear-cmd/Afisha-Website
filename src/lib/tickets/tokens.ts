@@ -16,6 +16,15 @@ export function qrPayloadForToken(token: string): string {
 }
 
 /**
+ * QR payload gate for API responses: only ISSUED/CHECKED_IN tickets expose a
+ * scannable payload (web parity — the QR is disabled for cancelled, refunded,
+ * expired, and invalidated tickets). Pure for unit testing.
+ */
+export function ticketQrPayload(status: string, token: string): string | null {
+  return status === 'ISSUED' || status === 'CHECKED_IN' ? qrPayloadForToken(token) : null;
+}
+
+/**
  * Extracts a ticket token from whatever the scanner produced: the canonical
  * "DGO1.<token>" payload, a bare token pasted manually, or a URL that carries
  * a token query/path segment. Returns null when nothing token-shaped is found.

@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 
@@ -51,7 +51,23 @@ export async function verifyToken(token: string): Promise<SessionUser | null> {
   }
 }
 
+/**
+ * Extracts the JWT from an `Authorization: Bearer <token>` header value.
+ * Pure so the parsing rules are unit-testable.
+ */
+export function bearerToken(headerValue: string | null | undefined): string | null {
+  if (!headerValue) return null;
+  const match = /^Bearer\s+(.+)$/i.exec(headerValue.trim());
+  const token = match?.[1]?.trim();
+  return token ? token : null;
+}
+
+// Mobile clients authenticate with `Authorization: Bearer <jwt>` (same JWT
+// the cookie carries); the web keeps using the httpOnly cookie. The header
+// wins when both are present.
 export async function getCurrentUser(): Promise<SessionUser | null> {
+  const fromHeader = bearerToken(headers().get('authorization'));
+  if (fromHeader) return verifyToken(fromHeader);
   const value = cookies().get(COOKIE_NAME)?.value;
   if (!value) return null;
   return verifyToken(value);

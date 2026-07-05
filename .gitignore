@@ -32,6 +32,13 @@ yarn-error.log*
 /test-results
 /blob-report
 
+# android
+/apps/android/.gradle
+/apps/android/**/build
+/apps/android/local.properties
+/apps/android/.idea
+/apps/android/captures
+
 # local user uploads
 /public/uploads
 

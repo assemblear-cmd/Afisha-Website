@@ -1,0 +1,12 @@
+<resources>
+    <string name="organizer_title">Organizador</string>
+    <string name="organizer_signed_out_title">Inicia sesión como organizador</string>
+    <string name="organizer_signed_out_body">Gestiona tus eventos, entradas y personal de acceso desde tu cuenta de DondeGO.</string>
+    <string name="organizer_sign_in">Iniciar sesión</string>
+    <string name="organizer_upgrade_title">Herramientas de organizador</string>
+    <string name="organizer_upgrade_body">Tu cuenta es de visitante. Crea una cuenta de organizador para publicar eventos y vender entradas.</string>
+    <string name="organizer_dashboard_title">Panel del organizador</string>
+    <string name="organizer_dashboard_body">Crea y edita eventos, gestiona tipos de entrada, solicita pagos y otorga acceso al escáner. Por ahora la gestión completa se realiza en el panel web de DondeGO; la app refleja tus eventos publicados y el control de acceso.</string>
+    <string name="organizer_open_web">Abrir panel del organizador</string>
+    <string name="organizer_scan">Ir al escáner</string>
+</resources>

@@ -1,0 +1,4 @@
+<resources>
+    <string name="checkout_title">Pago</string>
+    <string name="checkout_body">Selecciona entradas de un evento para continuar.</string>
+</resources>

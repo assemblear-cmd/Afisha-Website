@@ -1,0 +1,21 @@
+<resources>
+    <string name="event_detail_title">Detalles del evento</string>
+    <string name="event_detail_back">Atrás</string>
+    <string name="event_detail_loading">Cargando evento…</string>
+    <string name="event_detail_error">No se pudo cargar este evento.</string>
+    <string name="event_detail_retry">Reintentar</string>
+    <string name="event_detail_tba">Fecha por confirmar</string>
+    <string name="event_detail_venue_tba">Lugar por confirmar</string>
+    <string name="event_detail_about">Acerca de</string>
+    <string name="event_detail_tickets">Entradas</string>
+    <string name="event_detail_remaining">Quedan %1$d</string>
+    <string name="event_detail_sold_out">Agotado</string>
+    <string name="event_detail_not_on_sale">No disponible</string>
+    <string name="event_detail_buy_dondego">Comprar entradas en DondeGO</string>
+    <string name="event_detail_buy_note">El pago abre el sitio seguro de DondeGO. El pago dentro de la app llegará pronto.</string>
+    <string name="event_detail_open_source">Conseguir entradas en la fuente</string>
+    <string name="event_detail_source_note">La venta de entradas de este evento ocurre en el sitio original, no en DondeGO.</string>
+    <string name="event_detail_source_label">Fuente</string>
+    <string name="event_detail_organizer_label">Organizado por %1$s</string>
+    <string name="event_detail_free_badge">Evento gratis</string>
+</resources>

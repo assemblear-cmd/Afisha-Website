@@ -1,0 +1,4 @@
+<resources>
+    <string name="checkout_title">Checkout</string>
+    <string name="checkout_body">Select tickets from an event to continue.</string>
+</resources>

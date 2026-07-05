@@ -1,0 +1,12 @@
+<resources>
+    <string name="organizer_title">Organizer</string>
+    <string name="organizer_signed_out_title">Sign in as an organizer</string>
+    <string name="organizer_signed_out_body">Manage your events, tickets, and check-in staff from your DondeGO account.</string>
+    <string name="organizer_sign_in">Sign in</string>
+    <string name="organizer_upgrade_title">Organizer tools</string>
+    <string name="organizer_upgrade_body">Your account is a visitor account. Create an organizer account to publish events and sell tickets.</string>
+    <string name="organizer_dashboard_title">Organizer dashboard</string>
+    <string name="organizer_dashboard_body">Create and edit events, manage ticket types, request payouts, and grant scanner access. Full event management runs on the DondeGO web dashboard for now; the app mirrors your published events and check-in.</string>
+    <string name="organizer_open_web">Open organizer dashboard</string>
+    <string name="organizer_scan">Go to scanner</string>
+</resources>
