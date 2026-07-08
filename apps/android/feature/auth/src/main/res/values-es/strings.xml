@@ -7,8 +7,6 @@
     <string name="auth_email">Correo electrónico</string>
     <string name="auth_password">Contraseña</string>
     <string name="auth_password_hint">Al menos 8 caracteres</string>
-    <string name="auth_organizer_toggle">Organizo eventos</string>
-    <string name="auth_organizer_hint">Las cuentas de organizador pueden crear y gestionar eventos.</string>
     <string name="auth_submit_login">Iniciar sesión</string>
     <string name="auth_submit_register">Crear cuenta</string>
     <string name="auth_switch_to_register">¿Nuevo en DondeGO? Crea una cuenta</string>

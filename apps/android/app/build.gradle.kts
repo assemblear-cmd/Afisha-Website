@@ -37,8 +37,11 @@ android {
             buildConfigField("String", "API_BASE_URL", "\"$devApiBase\"")
         }
         release {
-            // Production API host; adjust before the first Play release.
-            buildConfigField("String", "API_BASE_URL", "\"https://dondego.app/\"")
+            // Production API host. Defaults to the live domain; override per
+            // build with -PdondegoApiBase=https://<host>/ (e.g. a staging URL).
+            val releaseApiBase = (project.findProperty("dondegoApiBase") as String?)
+                ?: "https://dondego.cl/"
+            buildConfigField("String", "API_BASE_URL", "\"$releaseApiBase\"")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

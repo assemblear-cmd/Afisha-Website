@@ -7,8 +7,6 @@
     <string name="auth_email">Email</string>
     <string name="auth_password">Password</string>
     <string name="auth_password_hint">At least 8 characters</string>
-    <string name="auth_organizer_toggle">I organize events</string>
-    <string name="auth_organizer_hint">Organizer accounts can create and manage events.</string>
     <string name="auth_submit_login">Log in</string>
     <string name="auth_submit_register">Create account</string>
     <string name="auth_switch_to_register">New to DondeGO? Create an account</string>

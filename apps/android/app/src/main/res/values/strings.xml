@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">DondeGO</string>
     <string name="nav_home">Home</string>
-    <string name="nav_tickets">Tickets</string>
+    <string name="nav_tickets">My tickets</string>
     <string name="nav_organizer">Organizer</string>
     <string name="nav_scanner">Scanner</string>
     <string name="nav_admin">Admin</string>

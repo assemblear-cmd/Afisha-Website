@@ -324,8 +324,7 @@ private fun MainMenu(
                 text = { Text(stringResource(R.string.nav_tickets)) },
                 onClick = { expanded = false; onNavigate(ROUTE_TICKETS) },
             )
-            val role = session?.role
-            if (role == UserRole.Organizer || role == UserRole.Admin) {
+            if (session != null) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.nav_organizer)) },
                     onClick = { expanded = false; onNavigate(ROUTE_ORGANIZER) },
@@ -335,7 +334,7 @@ private fun MainMenu(
                     onClick = { expanded = false; onNavigate(ROUTE_SCANNER) },
                 )
             }
-            if (role == UserRole.Admin) {
+            if (session?.role == UserRole.Admin) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.nav_admin)) },
                     onClick = { expanded = false; onNavigate(ROUTE_ADMIN) },
@@ -360,12 +359,11 @@ private fun MainMenu(
 private fun visibleDestinations(session: SessionUser?): List<Destination> = buildList {
     add(Destination(ROUTE_DISCOVER, R.string.nav_home, Icons.Outlined.Home))
     add(Destination(ROUTE_EVENTS, R.string.nav_events, Icons.Outlined.Event))
-    val role = session?.role
-    if (role == UserRole.Organizer || role == UserRole.Admin) {
+    if (session != null) {
         add(Destination(ROUTE_ORGANIZER, R.string.nav_organizer, Icons.Outlined.Dashboard))
         add(Destination(ROUTE_SCANNER, R.string.nav_scanner, Icons.Outlined.QrCodeScanner))
     }
-    if (role == UserRole.Admin) {
+    if (session?.role == UserRole.Admin) {
         add(Destination(ROUTE_ADMIN, R.string.nav_admin, Icons.Outlined.AdminPanelSettings))
     }
 }
