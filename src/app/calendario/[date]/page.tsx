@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { Container } from '@/components/ui';
 import { DateStrip, type DayChip } from '@/components/home/DateStrip';
@@ -7,9 +7,11 @@ import { ShowTileGrid } from '@/components/shows/ShowTileGrid';
 import { getDictionary } from '@/i18n/config';
 import { getLocale } from '@/i18n/getLocale';
 import { eventCategoryLabel } from '@/i18n/homeNav';
+import { getCurrentUser } from '@/lib/auth';
 import { getShowsForDate, isEventCategory, type DateShow } from '@/lib/data/shows';
+import { getLikedKeys } from '@/lib/likes';
 import { EVENT_CATEGORIES, type EventCategory } from '@/lib/taxonomy';
-import { addDaysToKey, isDateKey } from '@/lib/weekend';
+import { addDaysToKey, isDateKey, santiagoDateKey } from '@/lib/weekend';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,15 +43,20 @@ function dateHeading(dateKey: string, locale: string): string {
   return heading.charAt(0).toLocaleUpperCase(localeTag(locale)) + heading.slice(1);
 }
 
-function dateStripDays(dateKey: string, locale: string): DayChip[] {
+function dateStripDays(dateKey: string, locale: string, todayKey: string): DayChip[] {
   const tag = localeTag(locale);
   const dayFmt = new Intl.DateTimeFormat(tag, { day: 'numeric', timeZone: DISPLAY_TZ });
   const monthFmt = new Intl.DateTimeFormat(tag, { month: 'short', timeZone: DISPLAY_TZ });
   const weekdayFmt = new Intl.DateTimeFormat(tag, { weekday: 'short', timeZone: DISPLAY_TZ });
   const strip = (value: string) => value.replace(/\.$/, '');
 
+  // The window centers on the selected date but never starts before today, so
+  // the strip cannot navigate the calendar into the past.
+  const centeredStart = addDaysToKey(dateKey, -3);
+  const windowStart = centeredStart < todayKey ? todayKey : centeredStart;
+
   return Array.from({ length: 7 }, (_, i) => {
-    const iso = addDaysToKey(dateKey, i - 3);
+    const iso = addDaysToKey(windowStart, i);
     const date = new Date(`${iso}T12:00:00Z`);
     const dow = date.getUTCDay();
 
@@ -93,16 +100,21 @@ export async function generateMetadata({ params }: DatePageProps): Promise<Metad
 export default async function DatePage({ params, searchParams }: DatePageProps) {
   if (!isDateKey(params.date)) notFound();
 
+  // The calendar only looks forward — past dates bounce to today (Santiago).
+  const todayKey = santiagoDateKey(new Date());
+  if (params.date < todayKey) redirect(`/calendario/${todayKey}`);
+
   const locale = getLocale();
   const t = getDictionary(locale).datePage;
   const activeCategory = isEventCategory(searchParams.category) ? searchParams.category : undefined;
-  const allShows = await getShowsForDate(params.date);
+  const [allShows, user] = await Promise.all([getShowsForDate(params.date), getCurrentUser()]);
+  const likedKeys = await getLikedKeys(user?.id);
   const shows = activeCategory
     ? allShows.filter((show) => show.categories.includes(activeCategory))
     : allShows;
   const counts = categoryCounts(allShows);
   const title = dateHeading(params.date, locale);
-  const days = dateStripDays(params.date, locale);
+  const days = dateStripDays(params.date, locale, todayKey);
 
   return (
     <main className="min-h-screen bg-surface dark:bg-canvas">
@@ -177,6 +189,8 @@ export default async function DatePage({ params, searchParams }: DatePageProps) 
             locale={locale}
             shows={shows}
             tbaLabel={t.tba}
+            likedKeys={likedKeys}
+            signedIn={!!user}
           />
         )}
       </Container>

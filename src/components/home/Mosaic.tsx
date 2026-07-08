@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import Link from 'next/link';
 import { Container } from '@/components/ui';
 import { CoverPlaceholder } from '@/components/ui/CoverPlaceholder';
+import { LikeButton } from '@/components/likes/LikeButton';
 import { getLocale } from '@/i18n/getLocale';
 import { eventCategoryLabel, getHomeNav } from '@/i18n/homeNav';
 import type { ListedShow } from '@/lib/data/shows';
@@ -83,11 +84,16 @@ function buildCategoryMosaic(items: ListedShow[]): MosaicTile[] {
 export function Mosaic({
   items,
   promoted = [],
+  likedKeys,
+  signedIn = false,
 }: {
   items: ListedShow[];
   // Paid tile placements keyed by mosaic position (1..7); slots without an
   // active placement fall back to the normal category/show tile.
   promoted?: PromotedTile[];
+  /** Like keys of the signed-in user, for marking hearts. */
+  likedKeys?: ReadonlySet<string>;
+  signedIn?: boolean;
 }) {
   const locale = getLocale();
   const nav = getHomeNav(locale);
@@ -152,12 +158,10 @@ export function Mosaic({
             const title = show?.title ?? eventCategoryLabel(locale, cat);
             const venue = show?.theater?.name;
             return (
-              <a
+              <div
                 key={key}
-                href={show?.sourceUrl ?? '/teatros'}
-                {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 className={clsx(
-                  'group relative min-h-[10.75rem] overflow-hidden rounded-lg bg-surface no-underline sm:aspect-auto',
+                  'group relative min-h-[10.75rem] overflow-hidden rounded-lg bg-surface sm:aspect-auto',
                   i === 0 && 'col-span-2',
                   SPANS[i % SPANS.length]
                 )}
@@ -185,7 +189,23 @@ export function Mosaic({
                     <p className="mt-0.5 line-clamp-1 text-xs text-white/80">{venue}</p>
                   )}
                 </div>
-              </a>
+                {/* Whole-tile link as an overlay so the heart can sit above it
+                    without nesting a button inside an anchor. */}
+                <a
+                  href={show?.sourceUrl ?? '/teatros'}
+                  aria-label={title}
+                  {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                  className="absolute inset-0 z-10"
+                />
+                {show && (
+                  <LikeButton
+                    targetKey={show.wireId}
+                    initialLiked={likedKeys?.has(show.wireId) ?? false}
+                    signedIn={signedIn}
+                    className="absolute right-2 top-2 z-20"
+                  />
+                )}
+              </div>
             );
           })}
         </div>

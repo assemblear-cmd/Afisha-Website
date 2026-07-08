@@ -35,7 +35,9 @@ export function cleanupCutoff(now: Date, retentionDays: number): Date {
   return new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1000);
 }
 
-function staleShowWhere(cutoff: Date, undatedCutoff: Date): Prisma.ShowWhereInput {
+// Exported for unit tests: only scraped shows are ever deleted — finished ones
+// past the retention cutoff, plus undated ones the scrapers stopped seeing.
+export function staleShowWhere(cutoff: Date, undatedCutoff: Date): Prisma.ShowWhereInput {
   return {
     OR: [
       { endsAt: { lt: cutoff } },
@@ -45,7 +47,9 @@ function staleShowWhere(cutoff: Date, undatedCutoff: Date): Prisma.ShowWhereInpu
   };
 }
 
-function completableOrganizerEventWhere(now: Date): Prisma.EventWhereInput {
+// Exported for unit tests: organizer events are never deleted — finished live
+// ones are only flipped to COMPLETED (archived for the organizer).
+export function completableOrganizerEventWhere(now: Date): Prisma.EventWhereInput {
   return {
     endsAt: { lt: now },
     status: { in: ['APPROVED', 'PUBLISHED'] },

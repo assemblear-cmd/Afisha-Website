@@ -7,6 +7,8 @@ import { CategoryFilter } from '@/components/events/CategoryFilter';
 import { EventGrid } from '@/components/events/EventGrid';
 import { categoryLabel } from '@/lib/categories';
 import { weekendDateRange } from '@/lib/weekend';
+import { getCurrentUser } from '@/lib/auth';
+import { getLikedKeys } from '@/lib/likes';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Browse events' };
@@ -60,11 +62,15 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       : {}),
   };
 
-  const events = await prisma.event.findMany({
-    where,
-    include: { ticketTypes: true },
-    orderBy: { startsAt: 'asc' },
-  });
+  const [events, user] = await Promise.all([
+    prisma.event.findMany({
+      where,
+      include: { ticketTypes: true },
+      orderBy: { startsAt: 'asc' },
+    }),
+    getCurrentUser(),
+  ]);
+  const likedKeys = await getLikedKeys(user?.id);
 
   // Build a human-readable active filter summary
   const filters: string[] = [];
@@ -102,7 +108,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
         </div>
 
         {/* Results */}
-        <EventGrid events={events} />
+        <EventGrid events={events} likedKeys={likedKeys} signedIn={!!user} />
       </Container>
     </main>
   );

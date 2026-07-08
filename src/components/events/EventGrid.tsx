@@ -4,9 +4,12 @@ import { EventCard } from './EventCard';
 
 interface EventGridProps {
   events: (Event & { ticketTypes: TicketType[] })[];
+  /** Like keys ("event_<id>") of the signed-in user, for marking hearts. */
+  likedKeys?: ReadonlySet<string>;
+  signedIn?: boolean;
 }
 
-export function EventGrid({ events }: EventGridProps) {
+export function EventGrid({ events, likedKeys, signedIn = false }: EventGridProps) {
   if (events.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -21,7 +24,12 @@ export function EventGrid({ events }: EventGridProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {events.map((event) => (
-        <EventCard key={event.id} event={event} />
+        <EventCard
+          key={event.id}
+          event={event}
+          liked={likedKeys?.has(`event_${event.id}`) ?? false}
+          signedIn={signedIn}
+        />
       ))}
     </div>
   );
