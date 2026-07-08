@@ -1,9 +1,9 @@
 # DondeGO — project summary for a fresh chat
 
-Дата обновления: 2026-07-05 16:58 America/Santiago
+Дата обновления: 2026-07-08 America/Santiago
 Репозиторий: `/Users/skif/Documents/GitHub/Afisha-Website`
 Ветка: `main`
-Последний коммит: `c02a3f9 feat(mobile): Events tab (organized + liked), feed likes, top-bar menu`
+Последний коммит: `0b73078 feat(mobile): organizer nav for all signed-in users; fix release API base`
 
 Этот документ нужен как самодостаточная память проекта для нового чата без
 контекста. Он описывает продукт, архитектуру, деплой, домен, Android-приложение,
@@ -413,13 +413,11 @@ Debug API host:
 - For real phone over USB, use `adb reverse tcp:3000 tcp:3000` and keep the app
   configured against localhost/127.0.0.1 behavior.
 
-Release API host gotcha:
+Release API host (fixed 2026-07-08):
 
-- `apps/android/app/build.gradle.kts` currently has release
-  `API_BASE_URL = "https://dondego.app/"`.
-- Production domain is `https://dondego.cl/`.
-- Before Play release, change release API base to `https://dondego.cl/`, or
-  add a Gradle property override for release builds.
+- `apps/android/app/build.gradle.kts` release block now reads
+  `-PdondegoApiBase` and defaults to `https://dondego.cl/`.
+- Override per build, e.g. staging: `-PdondegoApiBase=https://staging.example/`.
 
 Build commands:
 
@@ -444,10 +442,8 @@ cd /Users/skif/Documents/GitHub/Afisha-Website/apps/android
 ./gradlew :app:bundleRelease -PdondegoApiBase=https://dondego.cl/
 ```
 
-Current gotcha: the command above is the desired shape, but the current
-`release` block does not read `dondegoApiBase` yet. Fix
-`apps/android/app/build.gradle.kts` first, or it will still build with the
-hardcoded `https://dondego.app/`.
+The release block now reads `dondegoApiBase`, so the command above works and
+defaults to `https://dondego.cl/` when the property is omitted.
 
 Signing is not fully wired yet. Do not commit keystores/passwords.
 
@@ -684,6 +680,15 @@ Code changes already on `main`:
 - Mobile menu tile icons normalized.
 - City banner uses a location pin and smaller font.
 - Google sign-in support added for Android, controlled by `GOOGLE_CLIENT_ID`.
+- (2026-07-08) Organizer + Scanner mobile nav shown to all signed-in users;
+  bottom-nav/menu "Tickets" renamed to "My tickets".
+- (2026-07-08) Android release API base now defaults to `https://dondego.cl/`
+  and reads `-PdondegoApiBase`.
+- (2026-07-08) Event cleanup preserves organizer archives (completes, never
+  deletes them); only stale scraped shows are removed (undated shows keep a
+  30-day grace). Organizer event dashboard shows an archive/finance summary.
+  Calendar feed limited to a 31-day horizon. `cleanup-events` cron scheduled
+  in `vercel.json` (`30 6 * * *`).
 
 Operational changes done after the latest git commit:
 
@@ -708,14 +713,15 @@ Local working tree note:
 
 ## 16. Open tasks / next best steps
 
+Done 2026-07-08: Android release API base now defaults to `https://dondego.cl/`
+and reads `-PdondegoApiBase` (previously hardcoded `https://dondego.app/`).
+
 Highest priority:
 
-1. Fix Android release API base from `https://dondego.app/` to
-   `https://dondego.cl/`, or make it configurable for release builds.
-2. Configure Android release signing for Play App Signing.
-3. Build release AAB and upload to Google Play internal testing.
-4. Add a Privacy Policy page/URL for Play Console.
-5. Configure Stripe production/test keys and webhook endpoint if real checkout
+1. Configure Android release signing for Play App Signing.
+2. Build release AAB and upload to Google Play internal testing.
+3. Add a Privacy Policy page/URL for Play Console.
+4. Configure Stripe production/test keys and webhook endpoint if real checkout
    testing is needed on production.
 
 Strong follow-ups:
