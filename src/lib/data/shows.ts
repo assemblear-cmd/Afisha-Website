@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma';
 import { EVENT_CATEGORIES, normalizeEventCategories, type EventCategory } from '@/lib/taxonomy';
 import { dateKeyRange, weekendDateRange } from '@/lib/weekend';
 
+const CALENDAR_LOOKAHEAD_DAYS = 31;
+
 export type ListedShow = {
   id: string;
   title: string;
@@ -153,6 +155,10 @@ function sortListedShows(a: ListedShow, b: ListedShow) {
   return a.title.localeCompare(b.title);
 }
 
+function addDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
 async function getPublishedOrganizerEvents(options: {
   startsAtGte: Date;
   startsAtLt?: Date;
@@ -254,12 +260,13 @@ function filterListedShows<T extends ListedShow>(shows: T[], category?: EventCat
 
 export async function getCalendarShows(category?: EventCategory) {
   const now = new Date();
+  const horizon = addDays(now, CALENDAR_LOOKAHEAD_DAYS);
 
   const [shows, organizerEvents] = await Promise.all([
     prisma.show.findMany({
       where: {
         isActive: true,
-        startsAt: { gte: now },
+        startsAt: { gte: now, lt: horizon },
         ...categoryWhere(category),
       },
       select: {
@@ -286,7 +293,7 @@ export async function getCalendarShows(category?: EventCategory) {
       orderBy: [{ startsAt: 'asc' }, { title: 'asc' }],
       take: 300,
     }),
-    getPublishedOrganizerEvents({ startsAtGte: now, category, take: 300 }),
+    getPublishedOrganizerEvents({ startsAtGte: now, startsAtLt: horizon, category, take: 300 }),
   ]);
 
   return filterListedShows([...shows.map(scrapedShowToListedShow), ...organizerEvents].sort(sortListedShows), category).slice(0, 300);

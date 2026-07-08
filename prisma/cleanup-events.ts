@@ -23,8 +23,7 @@ async function main() {
   console.log(`  Stale scraped shows deleted: ${result.shows.deleted}`);
   console.log(`  Organizer events to finish:  ${result.organizerEvents.completedMatched}`);
   console.log(`  Organizer events completed:  ${result.organizerEvents.completed}`);
-  console.log(`  Organizer events deletable:  ${result.organizerEvents.deleteMatched}`);
-  console.log(`  Organizer events deleted:    ${result.organizerEvents.deleted}`);
+  console.log('  Organizer events deleted:    0 (organizer archives are preserved)');
 }
 
 main()

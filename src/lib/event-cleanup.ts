@@ -1,7 +1,8 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
-export const DEFAULT_EVENT_CLEANUP_RETENTION_DAYS = 30;
+export const DEFAULT_EVENT_CLEANUP_RETENTION_DAYS = 0;
+export const UNDATED_SHOW_RETENTION_DAYS = 30;
 
 export type EventCleanupOptions = {
   dryRun?: boolean;
@@ -20,8 +21,6 @@ export type EventCleanupResult = {
   organizerEvents: {
     completed: number;
     completedMatched: number;
-    deleted: number;
-    deleteMatched: number;
   };
 };
 
@@ -36,12 +35,12 @@ export function cleanupCutoff(now: Date, retentionDays: number): Date {
   return new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1000);
 }
 
-function staleShowWhere(cutoff: Date): Prisma.ShowWhereInput {
+function staleShowWhere(cutoff: Date, undatedCutoff: Date): Prisma.ShowWhereInput {
   return {
     OR: [
       { endsAt: { lt: cutoff } },
       { endsAt: null, startsAt: { lt: cutoff } },
-      { startsAt: null, endsAt: null, lastSeenAt: { lt: cutoff } },
+      { startsAt: null, endsAt: null, lastSeenAt: { lt: undatedCutoff } },
     ],
   };
 }
@@ -53,36 +52,20 @@ function completableOrganizerEventWhere(now: Date): Prisma.EventWhereInput {
   };
 }
 
-function deletableOrganizerEventWhere(cutoff: Date): Prisma.EventWhereInput {
-  return {
-    endsAt: { lt: cutoff },
-    status: { in: ['DRAFT', 'REJECTED', 'CANCELLED', 'ARCHIVED'] },
-    ticketTypes: { every: { sold: 0 } },
-    orders: { none: {} },
-    tickets: { none: {} },
-    ticketScans: { none: {} },
-    placements: { none: {} },
-    promotionOrders: { none: {} },
-    ledgerEntries: { none: {} },
-    payoutRequests: { none: {} },
-  };
-}
-
 export async function runEventCleanup(options: EventCleanupOptions = {}): Promise<EventCleanupResult> {
   const now = options.now ?? new Date();
   const retentionDays = parseRetentionDays(
     options.retentionDays ?? process.env.EVENT_CLEANUP_RETENTION_DAYS
   );
   const cutoff = cleanupCutoff(now, retentionDays);
+  const undatedCutoff = cleanupCutoff(now, Math.max(retentionDays, UNDATED_SHOW_RETENTION_DAYS));
   const dryRun = options.dryRun ?? false;
-  const showWhere = staleShowWhere(cutoff);
+  const showWhere = staleShowWhere(cutoff, undatedCutoff);
   const completeWhere = completableOrganizerEventWhere(now);
-  const deleteEventWhere = deletableOrganizerEventWhere(cutoff);
 
-  const [matchedShows, completedMatched, deleteMatched] = await Promise.all([
+  const [matchedShows, completedMatched] = await Promise.all([
     prisma.show.count({ where: showWhere }),
     prisma.event.count({ where: completeWhere }),
-    prisma.event.count({ where: deleteEventWhere }),
   ]);
 
   if (dryRun) {
@@ -94,13 +77,11 @@ export async function runEventCleanup(options: EventCleanupOptions = {}): Promis
       organizerEvents: {
         completed: 0,
         completedMatched,
-        deleted: 0,
-        deleteMatched,
       },
     };
   }
 
-  const [deletedShows, completedEvents, deletedEvents] = await prisma.$transaction([
+  const [deletedShows, completedEvents] = await prisma.$transaction([
     prisma.show.deleteMany({ where: showWhere }),
     prisma.event.updateMany({
       where: completeWhere,
@@ -110,7 +91,6 @@ export async function runEventCleanup(options: EventCleanupOptions = {}): Promis
         completedAt: now,
       },
     }),
-    prisma.event.deleteMany({ where: deleteEventWhere }),
   ]);
 
   return {
@@ -124,8 +104,6 @@ export async function runEventCleanup(options: EventCleanupOptions = {}): Promis
     organizerEvents: {
       completed: completedEvents.count,
       completedMatched,
-      deleted: deletedEvents.count,
-      deleteMatched,
     },
   };
 }

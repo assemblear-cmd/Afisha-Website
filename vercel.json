@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/scrape-theaters",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-events",
+      "schedule": "30 6 * * *"
     }
   ]
 }
