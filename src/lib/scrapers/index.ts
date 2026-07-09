@@ -1,116 +1,26 @@
 import { prisma } from '@/lib/prisma';
 import { normalizeEventCategories } from '@/lib/taxonomy';
+import {
+  type ScrapedShow,
+  type TheaterScraper,
+  asArray,
+  decodeEntities,
+  extractJsonLdEvents,
+  extractJsonLdEventsFromHtml,
+  isoToInstant,
+  mapLimit,
+  santiagoTime,
+  stripTags,
+} from './shared';
+import { PLATFORM_ADAPTER_KEYS, PLATFORM_SCRAPERS } from './platforms';
 
-// A single repertoire entry as pulled from a theater's site, before it is
-// persisted as a Show row.
-export interface ScrapedShow {
-  externalId: string;
-  title: string;
-  description?: string | null;
-  startsAt?: Date | null;
-  endsAt?: Date | null;
-  venue?: string | null;
-  category?: string | null;
-  // Controlled event-type slugs (see src/lib/taxonomy.ts). Optional: when an
-  // adapter omits it, runScrape derives it from `category`.
-  categories?: string[] | null;
-  priceText?: string | null;
-  priceCents?: number | null;
-  currency?: string;
-  sourceUrl?: string | null;
-  imageUrl?: string | null;
-}
+// Generic building blocks (JSON-LD extraction, Santiago-safe date parsing,
+// HTML helpers) live in ./shared; cross-city platform adapters (Eventbrite,
+// Fever, viagogo, StubHub) in ./platforms. This module keeps the per-venue
+// adapters and the orchestrator.
 
-export interface TheaterScraper {
-  key: string;
-  fetchShows(theater: { website: string; eventSources?: string[] }): Promise<ScrapedShow[]>;
-}
-
-// ---- Generic JSON-LD Event extractor --------------------------------------
-// Many theater / ticketing sites embed schema.org Event data in
-// <script type="application/ld+json">. This pulls those out and is the default
-// strategy a per-theater adapter reuses by pointing it at a cartelera URL.
-// Sites without JSON-LD yield [] until a bespoke parser is added.
-
-function asArray<T>(v: T | T[] | undefined | null): T[] {
-  if (v == null) return [];
-  return Array.isArray(v) ? v : [v];
-}
-
-function parsePrice(offers: any): { priceCents: number | null; priceText: string | null; currency: string } {
-  const offer = asArray(offers)[0];
-  if (!offer) return { priceCents: null, priceText: null, currency: 'CLP' };
-  const raw = offer.price ?? offer.lowPrice;
-  const currency = offer.priceCurrency ?? 'CLP';
-  if (raw == null) return { priceCents: null, priceText: null, currency };
-  const num = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[^\d.]/g, ''));
-  if (!isFinite(num)) return { priceCents: null, priceText: String(raw), currency };
-  // CLP has no minor unit in practice; store CLP * 100 to keep the cents convention.
-  return { priceCents: Math.round(num * 100), priceText: `${num} ${currency}`, currency };
-}
-
-function nodeToShow(node: any, pageUrl: string): ScrapedShow | null {
-  const types = asArray(node['@type']).map((t) => String(t).toLowerCase());
-  if (!types.some((t) => t.includes('event')) || !node.name) return null;
-
-  const url = node.url ?? node['@id'] ?? pageUrl;
-  const start = node.startDate ? isoToInstant(String(node.startDate)) : null;
-  const end = node.endDate ? isoToInstant(String(node.endDate)) : null;
-  const location = asArray(node.location)[0];
-  const image = asArray(node.image)[0];
-  const { priceCents, priceText, currency } = parsePrice(node.offers);
-
-  return {
-    externalId: String(url),
-    title: String(node.name).trim(),
-    description: node.description ? String(node.description).slice(0, 2000) : null,
-    startsAt: start && !isNaN(start.getTime()) ? start : null,
-    endsAt: end && !isNaN(end.getTime()) ? end : null,
-    venue: location?.name ? String(location.name) : null,
-    category: 'teatro',
-    priceText,
-    priceCents,
-    currency,
-    sourceUrl: typeof url === 'string' ? url : null,
-    imageUrl: typeof image === 'string' ? image : (image?.url ?? null),
-  };
-}
-
-function extractJsonLdEventsFromHtml(html: string, pageUrl: string): ScrapedShow[] {
-  const blocks = [
-    ...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi),
-  ];
-  const shows: ScrapedShow[] = [];
-  for (const m of blocks) {
-    let data: any;
-    try {
-      data = JSON.parse(m[1].trim());
-    } catch {
-      continue; // skip malformed blocks
-    }
-    // JSON-LD may be a single node, an array, or a @graph container.
-    const nodes = asArray(data).flatMap((d: any) => (d['@graph'] ? asArray(d['@graph']) : [d]));
-    for (const node of nodes) {
-      const show = nodeToShow(node, pageUrl);
-      if (show) shows.push(show);
-    }
-  }
-  // Dedup by externalId.
-  return [...new Map(shows.map((s) => [s.externalId, s])).values()];
-}
-
-export async function extractJsonLdEvents(pageUrl: string): Promise<ScrapedShow[]> {
-  const res = await fetch(pageUrl, {
-    headers: {
-      'user-agent': 'AfishaBot/1.0 (+https://expresscarwash.cl; theater repertoire aggregator)',
-    },
-    cache: 'no-store',
-    // A hung host must never stall the whole scan.
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${pageUrl}`);
-  return extractJsonLdEventsFromHtml(await res.text(), pageUrl);
-}
+export type { ScrapedShow, TheaterScraper } from './shared';
+export { extractJsonLdEvents } from './shared';
 
 // ---- Generic JSON-LD fallback adapter ---------------------------------------
 // Default for every venue without a bespoke adapter: harvests schema.org Event
@@ -157,75 +67,6 @@ const MONTHS_ES: Record<string, number> = {
   enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
   julio: 6, agosto: 7, septiembre: 8, setiembre: 8, octubre: 9, noviembre: 10, diciembre: 11,
 };
-
-// Repertoire dates scraped from theater sites are Santiago wall-clock times.
-// `new Date(y, mo, d, ...)` would interpret them in the *host* timezone (UTC on
-// Vercel), shifting every showtime by Chile's offset. santiagoTime() pins the
-// components to America/Santiago and returns the matching UTC instant; the zone
-// offset is read via Intl, so CLT (−04) / CLST (−03) DST is handled with no
-// hardcoded value.
-const SANTIAGO_TZ = 'America/Santiago';
-
-function santiagoOffsetMs(utcMs: number): number {
-  // (Santiago wall-clock reading of this instant) − (its UTC reading) = offset.
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: SANTIAGO_TZ,
-    hourCycle: 'h23',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-  }).formatToParts(new Date(utcMs));
-  const f = (type: string) => {
-    const p = parts.find((x) => x.type === type);
-    return p ? parseInt(p.value, 10) : 0;
-  };
-  return Date.UTC(f('year'), f('month') - 1, f('day'), f('hour'), f('minute'), f('second')) - utcMs;
-}
-
-function santiagoTime(year: number, month: number, day: number, hh = 0, mm = 0): Date {
-  // Treat the components as UTC, then subtract Santiago's offset at that instant
-  // to land on the UTC instant whose Santiago wall clock matches the input.
-  const asUtc = Date.UTC(year, month, day, hh, mm);
-  return new Date(asUtc - santiagoOffsetMs(asUtc));
-}
-
-// schema.org dates are ISO 8601, but theater feeds often omit the timezone
-// (e.g. GAM emits "2026-10-02T19:30:00"). A string carrying an offset (Z or
-// ±hh:mm) is an absolute instant; an offset-less one is the venue's Santiago
-// wall-clock time, so anchor it there rather than let `new Date()` read it in
-// the host timezone.
-function isoToInstant(value: string): Date | null {
-  const s = value.trim();
-  if (/(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(s)) {
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
-  if (!m) {
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  return santiagoTime(+m[1], +m[2] - 1, +m[3], m[4] ? +m[4] : 0, m[5] ? +m[5] : 0);
-}
-
-function decodeEntities(s: string): string {
-  return s
-    .replace(/&amp;|&#0?38;/g, '&')
-    .replace(/&#8211;/g, '–')
-    .replace(/&#8212;/g, '—')
-    .replace(/&#8220;|&#8221;|&quot;/g, '"')
-    .replace(/&#8217;|&#8216;|&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é').replace(/&iacute;/g, 'í')
-    .replace(/&oacute;/g, 'ó').replace(/&uacute;/g, 'ú').replace(/&ntilde;/g, 'ñ')
-    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/<[^>]+>/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function stripTags(s: string): string {
-  return s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-}
 
 // Earliest upcoming "DD de MMMM [de YYYY]" date in the text. Year is inferred
 // when omitted; an evening (19:00) function time is assumed.
@@ -337,17 +178,6 @@ async function fetchShowPageMeta(url: string): Promise<{ imageUrl: string | null
   } catch {
     return { imageUrl: null, startsAt: null };
   }
-}
-
-async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
-  let i = 0;
-  const worker = async () => {
-    while (i < items.length) {
-      const idx = i++;
-      await fn(items[idx]);
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
 }
 
 export const municipalScraper: TheaterScraper = {
@@ -841,6 +671,7 @@ export const SCRAPERS: Record<string, TheaterScraper> = {
   lascondes: lasCondesScraper,
   teatrouc: teatroUcScraper,
   jsonld: genericJsonLdScraper,
+  ...PLATFORM_SCRAPERS,
 };
 
 // ---- Orchestrator ----------------------------------------------------------
@@ -854,19 +685,34 @@ export interface ScrapeResult {
 }
 
 /**
- * Runs every active theater, upserting its shows. Venues without a bespoke
- * adapter fall back to the generic JSON-LD extractor, so all sources are
- * attempted. Each theater is isolated: a failure is recorded on the Theater
- * row and never aborts the others. Idempotent — re-running updates
+ * Which sources a scrape run covers. Venue sites are scanned daily; the
+ * cross-city platforms (Eventbrite, Fever, viagogo, StubHub) weekly — they
+ * change slower and are far more sensitive to crawl frequency.
+ */
+export type ScrapeGroup = 'venues' | 'platforms' | 'all';
+
+function inScrapeGroup(theater: { adapter: string | null }, group: ScrapeGroup): boolean {
+  const isPlatform = !!theater.adapter && PLATFORM_ADAPTER_KEYS.has(theater.adapter);
+  if (group === 'all') return true;
+  return group === 'platforms' ? isPlatform : !isPlatform;
+}
+
+/**
+ * Runs every active theater in the group, upserting its shows. Venues without
+ * a bespoke adapter fall back to the generic JSON-LD extractor, so all sources
+ * are attempted. Each theater is isolated: a failure is recorded on the
+ * Theater row and never aborts the others. Idempotent — re-running updates
  * `lastSeenAt` and details. Venues run in small parallel batches so ~200
  * sources finish in minutes instead of hours.
  */
 const SCRAPE_CONCURRENCY = 8;
 
-export async function runScrape(): Promise<ScrapeResult[]> {
-  const theaters = await prisma.theater.findMany({
-    where: { isActive: true },
-  });
+export async function runScrape(group: ScrapeGroup = 'venues'): Promise<ScrapeResult[]> {
+  const theaters = (
+    await prisma.theater.findMany({
+      where: { isActive: true },
+    })
+  ).filter((theater) => inScrapeGroup(theater, group));
 
   const results: ScrapeResult[] = [];
 

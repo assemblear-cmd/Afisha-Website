@@ -96,7 +96,12 @@ export const SOURCE_VENUES: SourceVenue[] = [
   { slug: 'eventrid-chile', name: 'Eventrid Chile', website: 'https://www.eventrid.cl/', eventSources: ['https://www.eventrid.cl/'], adapter: null, categories: ['ticketera'] },
   { slug: 'passline-chile', name: 'Passline Chile', website: 'https://www.passline.com/', eventSources: ['https://www.passline.com/'], adapter: null, categories: ['ticketera'] },
   { slug: 'portaldisc-portaltickets', name: 'PortalTickets / PortalDisc', website: 'https://www.portaldisc.com/', eventSources: ['https://www.portaldisc.com/eventos'], adapter: null, categories: ['ticketera', 'plataforma-cultural'] },
-  { slug: 'fever-santiago', name: 'Fever Santiago', website: 'https://feverup.com/es/santiago', eventSources: ['https://feverup.com/es/santiago'], adapter: null, categories: ['ticketera', 'plataforma-cultural'] },
+  { slug: 'fever-santiago', name: 'Fever Santiago', website: 'https://feverup.com/es/santiago', eventSources: ['https://feverup.com/es/santiago'], adapter: 'feverup', categories: ['ticketera', 'plataforma-cultural'] },
+
+  // Cross-city event platforms scanned weekly (see /api/cron/scrape-platforms).
+  { slug: 'eventbrite-santiago', name: 'Eventbrite Santiago', website: 'https://www.eventbrite.cl/', eventSources: ['https://www.eventbrite.cl/d/chile--santiago/all-events/'], adapter: 'eventbrite', categories: ['ticketera', 'plataforma-cultural'] },
+  { slug: 'viagogo-santiago', name: 'viagogo Santiago', website: 'https://www.viagogo.com/cl/', eventSources: ['https://www.viagogo.com/cl/Santiago', 'https://www.viagogo.com/cl/Santiago/Entradas-Conciertos'], adapter: 'viagogo', categories: ['ticketera'] },
+  { slug: 'stubhub-chile', name: 'StubHub Chile', website: 'https://www.stubhub.cl/', eventSources: ['https://www.stubhub.cl/entradas-santiago-de-chile/geography/448050/'], adapter: 'stubhub', categories: ['ticketera'] },
 
   // Theater, comedy and performing-arts rooms not yet covered above.
   { slug: 'teatro-nescafe-de-las-artes', name: 'Teatro Nescafé de las Artes', website: 'https://www.teatro-nescafe-delasartes.cl/', eventSources: ['https://www.teatro-nescafe-delasartes.cl/'], adapter: null, categories: ['teatro', 'sala-de-conciertos'] },
@@ -277,6 +282,22 @@ export const SOURCE_VENUES: SourceVenue[] = [
   { slug: 'panorama-teatral', name: 'Panorama Teatral', website: 'https://panoramateatral.cl', eventSources: ['https://panoramateatral.cl'], adapter: null, categories: ['plataforma-cultural'] },
   { slug: 'kono-live', name: 'KONO LIVE!', website: 'https://www.konolive.cl', eventSources: ['https://www.konolive.cl/conciertos-santiago.html'], adapter: null, categories: ['plataforma-cultural'] },
   { slug: 'resident-advisor-santiago', name: 'Resident Advisor (Santiago)', website: 'https://ra.co/events/cl/santiago', eventSources: ['https://ra.co/events/cl/santiago'], adapter: null, categories: ['plataforma-cultural'] },
+
+  // --- 2026-07-09 batch: venues surfaced via the Instagram/Facebook scan ------
+  // Municipal cultural corporations with their own event agendas.
+  { slug: 'centro-cultural-recoleta', name: 'Centro Cultural Recoleta', website: 'https://www.instagram.com/elrecoleta/', eventSources: ['https://www.instagram.com/elrecoleta/', 'https://www.instagram.com/culturarecoleta/'], adapter: null, categories: ['centro-cultural', 'galeria', 'sala-de-conciertos'] },
+  { slug: 'corporacion-cultural-lo-barnechea', name: 'Corporación Cultural de Lo Barnechea', website: 'https://corporacionculturaldelobarnechea.cl/', eventSources: ['https://corporacionculturaldelobarnechea.cl/', 'https://www.instagram.com/corporacionculturallb/'], adapter: null, categories: ['centro-cultural', 'teatro', 'galeria'] },
+  { slug: 'corporacion-cultural-quilicura', name: 'Corporación Cultural Municipal de Quilicura', website: 'https://www.instagram.com/corpo_quilicura/', eventSources: ['https://www.instagram.com/corpo_quilicura/'], adapter: null, categories: ['centro-cultural', 'teatro'] },
+  { slug: 'corporacion-cultural-puente-alto', name: 'Corporación Cultural de Puente Alto', website: 'https://www.culturapuentealto.cl/', eventSources: ['https://www.culturapuentealto.cl/'], adapter: null, categories: ['centro-cultural', 'teatro'] },
+  { slug: 'aldea-del-encuentro', name: 'Aldea del Encuentro (La Reina)', website: 'https://tickets.aldeaencuentro.cl/catalogo/lista', eventSources: ['https://tickets.aldeaencuentro.cl/catalogo/lista'], adapter: null, categories: ['centro-cultural', 'sala-de-eventos', 'parque'] },
+  { slug: 'teatro-novedades', name: 'Teatro Novedades (Barrio Yungay)', website: 'https://cordesansantiago.cl/teatro-novedades/', eventSources: ['https://cordesansantiago.cl/teatro-novedades/'], adapter: null, categories: ['teatro', 'centro-cultural'] },
+  // Clubs, live venues and event restobars active mainly on Instagram/Facebook.
+  { slug: 'teatro-club-santiago', name: 'Teatro Club', website: 'https://teatroclub.cl/', eventSources: ['https://teatroclub.cl/catalogo/lista'], adapter: null, categories: ['club', 'sala-de-conciertos'] },
+  { slug: 'rustiko-huechuraba', name: 'Rustiko (Huechuraba)', website: 'https://rustikohuechuraba.cl/', eventSources: ['https://rustikohuechuraba.cl/catalogo/lista'], adapter: null, categories: ['restaurante', 'bar', 'sala-de-conciertos'] },
+  { slug: 'broadway-chile', name: 'Broadway Chile', website: 'https://www.broadwaychile.cl/', eventSources: ['https://www.broadwaychile.cl/catalogo/lista', 'https://www.instagram.com/broadwaychile/'], adapter: null, categories: ['teatro', 'productora'] },
+  { slug: 'zona-play', name: 'Zona Play', website: 'https://www.zonaplay.cl/', eventSources: ['https://www.zonaplay.cl/catalogo/lista'], adapter: null, categories: ['sala-de-eventos'] },
+  // Convention/event centers.
+  { slug: 'centro-eventos-san-carlos-apoquindo', name: 'Centro de Eventos San Carlos de Apoquindo', website: 'https://www.lacatolica.cl/secciones/1524', eventSources: ['https://www.lacatolica.cl/secciones/1524'], adapter: null, categories: ['centro-de-convenciones', 'sala-de-eventos'] },
   { slug: 'songkick-santiago', name: 'Songkick (Santiago metro)', website: 'https://www.songkick.com/metro-areas/27525-chile-santiago', eventSources: ['https://www.songkick.com/metro-areas/27525-chile-santiago'], adapter: null, categories: ['plataforma-cultural'] },
   { slug: 'bandsintown-santiago', name: 'Bandsintown (Santiago)', website: 'https://www.bandsintown.com/c/santiago-chile', eventSources: ['https://www.bandsintown.com/c/santiago-chile'], adapter: null, categories: ['plataforma-cultural'] },
   { slug: 'cooperativa-conciertos', name: 'Cooperativa - Cartelera de conciertos', website: 'https://www.cooperativa.cl/noticias/magazine/musica/shows-en-vivo/', eventSources: ['https://www.cooperativa.cl/noticias/magazine/musica/shows-en-vivo/'], adapter: null, categories: ['plataforma-cultural'] },
