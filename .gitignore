@@ -45,3 +45,7 @@ yarn-error.log*
 # vercel
 .vercel
 .env*
+
+# instagram story agent artifacts
+/scripts/instagram-story/out
+/scripts/instagram-story/.state

@@ -15,6 +15,7 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "story:generate": "node scripts/instagram-story/generate-story.mjs",
     "db:sync-theaters": "tsx prisma/sync-theaters.ts",
     "db:sync-commerce": "tsx prisma/sync-commerce.ts",
     "db:scrape": "tsx prisma/run-scrape.ts",
