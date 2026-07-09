@@ -1,4 +1,5 @@
 import { Badge, CoverPlaceholder } from '@/components/ui';
+import { LikeButton } from '@/components/likes/LikeButton';
 import type { Locale } from '@/i18n/config';
 import { eventCategoryLabel } from '@/i18n/homeNav';
 import { isEventCategory } from '@/lib/data/shows';
@@ -33,6 +34,8 @@ const CATEGORY_GLYPHS: Record<EventCategory, string> = {
 
 type TileShow = {
   id: string;
+  // Like target ("show_<id>" | "event_<id>"); see ListedShow.wireId.
+  wireId: string;
   title: string;
   startsAt: Date | null;
   venue: string | null;
@@ -54,6 +57,9 @@ type ShowTileGridProps = {
   locale: Locale;
   shows: TileShow[];
   tbaLabel: string;
+  /** Like keys of the signed-in user, for marking hearts. */
+  likedKeys?: ReadonlySet<string>;
+  signedIn?: boolean;
 };
 
 function localeTag(locale: string): string {
@@ -75,7 +81,15 @@ function primaryCategory(show: TileShow): EventCategory {
   return show.categories.find(isEventCategory) ?? 'otros';
 }
 
-export function ShowTileGrid({ activeCategory, freeLabel, locale, shows, tbaLabel }: ShowTileGridProps) {
+export function ShowTileGrid({
+  activeCategory,
+  freeLabel,
+  locale,
+  shows,
+  tbaLabel,
+  likedKeys,
+  signedIn = false,
+}: ShowTileGridProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {shows.map((show) => {
@@ -85,11 +99,11 @@ export function ShowTileGrid({ activeCategory, freeLabel, locale, shows, tbaLabe
         const priceLabel = formatListingPrice(show.priceCents, show.currency, freeLabel, show.priceText);
 
         return (
+          <div key={show.id} className="relative transition hover:-translate-y-0.5">
           <a
-            key={show.id}
             href={href}
             {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
-            className="group overflow-hidden rounded-lg bg-white text-[#1E0A3C] no-underline shadow-card ring-coral transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 dark:bg-card dark:text-white dark:shadow-none"
+            className="group block overflow-hidden rounded-lg bg-white text-[#1E0A3C] no-underline shadow-card ring-coral focus:outline-none focus-visible:ring-2 dark:bg-card dark:text-white dark:shadow-none"
           >
             <div className="relative aspect-[16/9] overflow-hidden">
               <CoverPlaceholder seed={show.id} glyph={CATEGORY_GLYPHS[category]} />
@@ -128,6 +142,14 @@ export function ShowTileGrid({ activeCategory, freeLabel, locale, shows, tbaLabe
               )}
             </div>
           </a>
+          {/* Sibling of the tile link (not nested) so the heart stays valid HTML. */}
+          <LikeButton
+            targetKey={show.wireId}
+            initialLiked={likedKeys?.has(show.wireId) ?? false}
+            signedIn={signedIn}
+            className="absolute right-2 top-2 z-30"
+          />
+          </div>
         );
       })}
     </div>

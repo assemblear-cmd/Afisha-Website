@@ -6,6 +6,9 @@ const CALENDAR_LOOKAHEAD_DAYS = 31;
 
 export type ListedShow = {
   id: string;
+  // Like target in mobile wire-id form ("show_<id>" | "event_<id>") — globally
+  // unique across scraped shows and native organizer events.
+  wireId: string;
   title: string;
   startsAt: Date | null;
   venue: string | null;
@@ -91,7 +94,7 @@ function showCategories(show: { title: string; description?: string | null; cate
 }
 
 function scrapedShowToListedShow(
-  show: Omit<ListedShow, 'category' | 'categories'> & {
+  show: Omit<ListedShow, 'category' | 'categories' | 'wireId'> & {
     description?: string | null;
     category: string | null;
     categories: string[];
@@ -101,6 +104,7 @@ function scrapedShowToListedShow(
   const categories = showCategories(show);
   return {
     ...listedShow,
+    wireId: `show_${show.id}`,
     category: categories[0] ?? 'otros',
     categories,
   };
@@ -127,6 +131,7 @@ function organizerEventToListedShow(event: {
 
   return {
     id: event.id,
+    wireId: `event_${event.id}`,
     title: event.title,
     startsAt: event.startsAt,
     venue: event.venue,

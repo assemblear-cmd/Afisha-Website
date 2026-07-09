@@ -16,6 +16,7 @@ import { ticketQrPayload } from '@/lib/tickets/tokens';
 function listedShow(overrides: Partial<ListedShow> = {}): ListedShow {
   return {
     id: 'show-1',
+    wireId: 'show_show-1',
     title: 'Concierto Sinfónico',
     startsAt: new Date('2026-08-01T20:00:00Z'),
     venue: 'Sala Principal',
@@ -34,6 +35,7 @@ function listedShow(overrides: Partial<ListedShow> = {}): ListedShow {
 function nativeListedShow(overrides: Partial<ListedShow> = {}): ListedShow {
   return listedShow({
     id: 'event-1',
+    wireId: 'event_event-1',
     sourceUrl: '/events/event-1',
     priceText: null,
     ...overrides,

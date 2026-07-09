@@ -3,8 +3,11 @@ import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { Container, Badge, Card, CoverPlaceholder } from '@/components/ui';
 import { TicketPurchase } from '@/components/events/TicketPurchase';
+import { LikeButton } from '@/components/likes/LikeButton';
+import { getCurrentUser } from '@/lib/auth';
 import { categoryLabel, categoryEmoji } from '@/lib/categories';
 import { formatDateTime } from '@/lib/format';
+import { getLikedKeys, nativeLikeKey } from '@/lib/likes';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,15 +24,20 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
 }
 
 export default async function EventPage({ params }: EventPageProps) {
-  const event = await prisma.event.findUnique({
-    where: { id: params.id },
-    include: {
-      ticketTypes: true,
-      organizer: { select: { id: true, name: true } },
-    },
-  });
+  const [event, user] = await Promise.all([
+    prisma.event.findUnique({
+      where: { id: params.id },
+      include: {
+        ticketTypes: true,
+        organizer: { select: { id: true, name: true } },
+      },
+    }),
+    getCurrentUser(),
+  ]);
 
   if (!event || event.status !== 'PUBLISHED' || !event.isPublished) notFound();
+
+  const likedKeys = await getLikedKeys(user?.id);
 
   const {
     id,
@@ -68,7 +76,17 @@ export default async function EventPage({ params }: EventPageProps) {
               <Badge tone="coral" className="mb-3">
                 {categoryLabel(category)}
               </Badge>
-              <h1 className="text-3xl font-extrabold text-ink leading-tight">{title}</h1>
+              <div className="flex items-start justify-between gap-3">
+                <h1 className="text-3xl font-extrabold text-ink leading-tight">{title}</h1>
+                <LikeButton
+                  targetKey={nativeLikeKey(id)}
+                  initialLiked={likedKeys.has(nativeLikeKey(id))}
+                  signedIn={!!user}
+                  tone="ink"
+                  iconSize={26}
+                  className="mt-1 shrink-0"
+                />
+              </div>
             </div>
 
             {/* Meta block */}

@@ -1,11 +1,18 @@
-import { runScrape } from '../src/lib/scrapers';
+import { runScrape, type ScrapeGroup } from '../src/lib/scrapers';
 
-// Manual full scan of all active sources (bespoke adapters + generic JSON-LD
-// fallback). Run with: npm run db:scrape
+// Manual scan of active sources (bespoke adapters + generic JSON-LD fallback).
+//   npm run db:scrape                     — venue sites (daily group)
+//   npm run db:scrape -- --group=platforms — Eventbrite/Fever/viagogo/StubHub
+//   npm run db:scrape -- --group=all       — everything
+
+function parseGroup(): ScrapeGroup {
+  const arg = process.argv.find((a) => a.startsWith('--group='))?.slice('--group='.length);
+  return arg === 'platforms' || arg === 'all' ? arg : 'venues';
+}
 
 async function main() {
   const startedAt = Date.now();
-  const results = await runScrape();
+  const results = await runScrape(parseGroup());
 
   const withShows = results.filter((r) => r.found > 0).sort((a, b) => b.found - a.found);
   const failed = results.filter((r) => !r.ok);

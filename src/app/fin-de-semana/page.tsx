@@ -8,6 +8,8 @@ import { eventCategoryLabel } from '@/i18n/homeNav';
 import { getWeekendShows, isEventCategory, type WeekendShow } from '@/lib/data/shows';
 import { EVENT_CATEGORIES, type EventCategory } from '@/lib/taxonomy';
 import { weekendWindow } from '@/lib/weekend';
+import { getCurrentUser } from '@/lib/auth';
+import { getLikedKeys } from '@/lib/likes';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,7 +65,8 @@ export default async function WeekendPage({ searchParams }: WeekendPageProps) {
   const t = getDictionary(locale).weekend;
   const activeCategory = isEventCategory(searchParams.category) ? searchParams.category : undefined;
   const weekend = weekendWindow();
-  const allShows = await getWeekendShows();
+  const [allShows, user] = await Promise.all([getWeekendShows(), getCurrentUser()]);
+  const likedKeys = await getLikedKeys(user?.id);
   const shows = activeCategory
     ? allShows.filter((show) => show.categories.includes(activeCategory))
     : allShows;
@@ -136,6 +139,8 @@ export default async function WeekendPage({ searchParams }: WeekendPageProps) {
             locale={locale}
             shows={shows}
             tbaLabel={t.tba}
+            likedKeys={likedKeys}
+            signedIn={!!user}
           />
         )}
       </Container>

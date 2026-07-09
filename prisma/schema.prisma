@@ -45,6 +45,23 @@ model EventLike {
   @@index([userId])
 }
 
+// One Instagram Story auto-post per native event, written by the
+// /api/cron/instagram-story marketing agent. Durable state (Vercel's
+// filesystem is not persistent) so the cron never re-posts the same event and
+// keeps rotating to the next upcoming one. `eventId` is the native Event id;
+// kept as a loose string (no FK) like EventLike.targetKey.
+model InstagramStoryPost {
+  id        String   @id @default(cuid())
+  eventId   String   @unique
+  // IG media id returned by media_publish (null while status = FAILED).
+  mediaId   String?
+  status    String   @default("POSTED") // POSTED | FAILED
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
 // Lifecycle of an organizer-submitted event. Legacy rows (created before the
 // organizer module) default to PUBLISHED; `isPublished` is kept in sync so the
 // existing public queries keep working unchanged.

@@ -9,11 +9,14 @@ import { Mosaic } from '@/components/home/Mosaic';
 import { WeekendFeature } from '@/components/home/WeekendFeature';
 import { getUpcomingShows } from '@/lib/data/shows';
 import { getActivePromotedTiles } from '@/lib/promotion/homepage';
+import { getCurrentUser } from '@/lib/auth';
+import { getLikedKeys } from '@/lib/likes';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const t = getDictionary(getLocale()).home;
+  const user = await getCurrentUser();
   const events = await prisma.event.findMany({
     where: {
       isPublished: true,
@@ -28,12 +31,13 @@ export default async function HomePage() {
   // Paid homepage tile placements (approved/live, window covering now).
   // Positions without one keep the normal mosaic content.
   const promoted = Array.from((await getActivePromotedTiles()).values());
+  const likedKeys = await getLikedKeys(user?.id);
 
   return (
     <main>
       <TopCategoryNav />
       <WhereToGo />
-      <Mosaic items={shows} promoted={promoted} />
+      <Mosaic items={shows} promoted={promoted} likedKeys={likedKeys} signedIn={!!user} />
       <WeekendFeature />
 
       {/* UPCOMING EVENTS */}
@@ -45,7 +49,7 @@ export default async function HomePage() {
               {t.seeAll} →
             </LinkButton>
           </div>
-          <EventGrid events={events} />
+          <EventGrid events={events} likedKeys={likedKeys} signedIn={!!user} />
         </Container>
       </section>
     </main>

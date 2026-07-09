@@ -89,7 +89,7 @@ export type LocationCategory = (typeof LOCATION_CATEGORIES)[number];
 // `obra-de-teatro`, which is the dominant category for these venues — tune here
 // if a finer split is ever needed.
 const EVENT_KEYWORDS: [RegExp, EventCategory][] = [
-  [/concier|recital|sonata|m[úu]sica|musical|sinf[óo]nic|orquesta|c[áa]mara|\bjazz\b|\brock\b|\bpop\b|coral/i, 'concierto'],
+  [/concier|recital|sonata|m[úu]sica|musical|sinf[óo]nic|orquesta|c[áa]mara|\bjazz\b|\brock\b|\bpop\b|coral|tribut[eo]|candlelight|\bgira\b|\btour\b|en\s+vivo\b|\blive\b/i, 'concierto'],
   [/festival/i, 'festival'],
   [/exposici[óo]n|exhibici[óo]n|muestra|galer[íi]a|artes?\s*visuales|pintura|fotograf/i, 'exposicion'],
   [/charla|conferencia|seminario|conversatorio|coloquio|lectura|ponencia|clase\s*magistral|lanzamiento\s+de\s+libro|presentaci[óo]n\s+de\s+libro|ideas?\s+y\s+pensamiento|convocatoria/i, 'charla'],
@@ -100,7 +100,7 @@ const EVENT_KEYWORDS: [RegExp, EventCategory][] = [
   [/networking|meetup|language exchange|intercambio|alumni|make new friends|comunidad|community/i, 'networking'],
   [/business|professional|mba|finance|emprend|startup|corporate|empresa|negocios/i, 'negocios'],
   [/tech|technology|data|ai|inteligencia artificial|cyber|software|science\s*&\s*technology/i, 'tecnologia'],
-  [/food|drink|wine|vino|queso|pizzeria|gastronom|degustaci[óo]n|restaurante/i, 'gastronomia'],
+  [/food|drink|wine|vino|queso|pizzeria|gastron[oó]m|degustaci[óo]n|restaurante/i, 'gastronomia'],
   [/workshop|class|training|curso|certificaci[óo]n|taller/i, 'curso-taller'],
   [/health|wellness|medical|mind and body|salud|bienestar|yoga|meditaci[óo]n/i, 'salud-y-bienestar'],
   [/sport|deport|marathon|running|f[úu]tbol|formula|f1|race/i, 'deportes'],

@@ -14,7 +14,7 @@ export function dollarsToCents(d: number): number {
   return Math.round(d * 100);
 }
 
-function clpListingAmount(value: number): number {
+export function clpListingAmount(value: number): number {
   // Scraped Show rows historically store CLP as pesos * 100, while organizer
   // TicketType rows store CLP as whole pesos. Accept both in listings.
   return value >= 100000 ? Math.round(value / 100) : value;

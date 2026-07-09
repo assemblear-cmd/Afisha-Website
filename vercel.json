@@ -7,6 +7,14 @@
     {
       "path": "/api/cron/cleanup-events",
       "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/scrape-platforms",
+      "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/cron/instagram-story",
+      "schedule": "0 15 * * *"
     }
   ]
 }
