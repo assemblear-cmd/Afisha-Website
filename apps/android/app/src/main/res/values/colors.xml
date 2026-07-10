@@ -1,0 +1,4 @@
+<resources>
+    <!-- Launcher icon background: theater-curtain burgundy. -->
+    <color name="ic_launcher_background">#800020</color>
+</resources>

@@ -1,11 +1,11 @@
+<!-- White "D" centered in the adaptive-icon safe zone. The 48-unit viewport
+     scales up to the 108dp adaptive canvas, keeping the glyph well inside the
+     66dp safe circle under any launcher mask. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="48dp"
-    android:height="48dp"
+    android:width="108dp"
+    android:height="108dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <path
-        android:fillColor="#E21B2D"
-        android:pathData="M24,4a20,20 0,1 0,0.1 0z" />
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M15,13h9c6.1,0 10,4.1 10,10.8S30.1,35 24,35h-9zM21,19v10h2.6c2.8,0 4.5,-1.9 4.5,-5.1S26.4,19 23.6,19z" />

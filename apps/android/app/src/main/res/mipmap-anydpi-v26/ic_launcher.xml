@@ -1,0 +1,7 @@
+<!-- Full-bleed burgundy launcher icon with a white "D". minSdk is 26, so the
+     adaptive icon is the only launcher asset the app needs. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>
