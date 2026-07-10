@@ -1,28 +1,35 @@
 package dondeg.app.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -32,13 +39,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -102,6 +114,8 @@ fun DondeGoApp(container: DondeGoAppContainer) {
 
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val destinations = remember(session) { visibleDestinations(session) }
+    var topSearchQuery by remember { mutableStateOf("") }
+    var topSearchVersion by remember { mutableStateOf(0) }
 
     fun switchTab(route: String) {
         navController.navigate(route) {
@@ -109,6 +123,12 @@ fun DondeGoApp(container: DondeGoAppContainer) {
             restoreState = true
             popUpTo(ROUTE_DISCOVER) { saveState = true }
         }
+    }
+
+    fun updateSearch(query: String) {
+        topSearchQuery = query
+        topSearchVersion += 1
+        if (currentRoute != ROUTE_DISCOVER) switchTab(ROUTE_DISCOVER)
     }
 
     DondeGoTheme {
@@ -121,24 +141,17 @@ fun DondeGoApp(container: DondeGoAppContainer) {
                         actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                     ),
                     title = {
-                        Text(
-                            text = stringResource(R.string.app_name),
-                            modifier = Modifier.clickable { switchTab(ROUTE_DISCOVER) },
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                        if (currentRoute == ROUTE_DISCOVER) {
+                            DiscoverTopSearch(
+                                query = topSearchQuery,
+                                onQueryChange = ::updateSearch,
+                                onLogoClick = { switchTab(ROUTE_DISCOVER) },
+                            )
+                        } else {
+                            DondeGoLogo(onClick = { switchTab(ROUTE_DISCOVER) })
+                        }
                     },
                     actions = {
-                        LanguageMenu()
-                        if (session == null) {
-                            TextButton(onClick = { navController.navigate(ROUTE_AUTH) }) {
-                                Text(
-                                    text = stringResource(R.string.account_sign_in),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
-                        }
                         MainMenu(
                             session = session,
                             onNavigate = { route -> switchTab(route) },
@@ -175,6 +188,8 @@ fun DondeGoApp(container: DondeGoAppContainer) {
                         onOpenEvent = { kind, id ->
                             navController.navigate("detail/${kind.name}/${id}")
                         },
+                        requestedQuery = topSearchQuery,
+                        queryRequestVersion = topSearchVersion,
                     )
                 }
                 composable(ROUTE_EVENTS) {
@@ -254,26 +269,113 @@ fun DondeGoApp(container: DondeGoAppContainer) {
     }
 }
 
+@Composable
+private fun DondeGoLogo(onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .size(width = 44.dp, height = 38.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        color = Color(0xFF4B0015),
+        contentColor = Color.White,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = "D",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DiscoverTopSearch(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onLogoClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        DondeGoLogo(onClick = onLogoClick)
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier
+                .weight(1f)
+                .height(52.dp),
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
+            shape = RoundedCornerShape(12.dp),
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Outlined.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+            },
+            placeholder = {
+                Text(
+                    text = stringResource(dondeg.app.feature.discover.R.string.discover_search_hint),
+                    style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+        )
+    }
+}
+
 /**
- * Language switcher in the top bar. Picking a language persists the choice and
- * recreates the Activity so every screen re-resolves its strings immediately.
+ * Premium top-bar menu: account action first, then language flags. Section
+ * navigation stays in the bottom bar or event dashboards.
  */
 @Composable
-private fun LanguageMenu() {
+private fun MainMenu(
+    session: SessionUser?,
+    onNavigate: (String) -> Unit,
+    onSignIn: () -> Unit,
+    onSignOut: () -> Unit,
+) {
     val context = LocalContext.current
     val currentLang = LocalConfiguration.current.locales[0].language
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(
-                imageVector = Icons.Outlined.Language,
-                contentDescription = stringResource(R.string.language_menu),
+                imageVector = Icons.Outlined.Menu,
+                contentDescription = stringResource(R.string.menu_more),
             )
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.width(292.dp),
+        ) {
+            if (session == null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.account_sign_in)) },
+                    onClick = { expanded = false; onSignIn() },
+                )
+            } else {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.account_sign_out)) },
+                    onClick = { expanded = false; onSignOut() },
+                )
+            }
+            HorizontalDivider()
+            MenuCaption(stringResource(R.string.language_menu))
             AppLanguage.entries.forEach { language ->
                 DropdownMenuItem(
-                    text = { Text(language.label) },
+                    text = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(languageFlag(language.tag))
+                            Text(language.label)
+                        }
+                    },
                     onClick = {
                         expanded = false
                         if (language.tag != currentLang) {
@@ -292,77 +394,27 @@ private fun LanguageMenu() {
     }
 }
 
-/**
- * Top-bar navigation + account menu. Gives access to every section (including
- * the ones not in the bottom bar, like My tickets) and sign in / sign out.
- */
 @Composable
-private fun MainMenu(
-    session: SessionUser?,
-    onNavigate: (String) -> Unit,
-    onSignIn: () -> Unit,
-    onSignOut: () -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(
-                imageVector = Icons.Outlined.Menu,
-                contentDescription = stringResource(R.string.menu_more),
-            )
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.nav_home)) },
-                onClick = { expanded = false; onNavigate(ROUTE_DISCOVER) },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.nav_events)) },
-                onClick = { expanded = false; onNavigate(ROUTE_EVENTS) },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.nav_tickets)) },
-                onClick = { expanded = false; onNavigate(ROUTE_TICKETS) },
-            )
-            if (session != null) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.nav_organizer)) },
-                    onClick = { expanded = false; onNavigate(ROUTE_ORGANIZER) },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.nav_scanner)) },
-                    onClick = { expanded = false; onNavigate(ROUTE_SCANNER) },
-                )
-            }
-            if (session?.role == UserRole.Admin) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.nav_admin)) },
-                    onClick = { expanded = false; onNavigate(ROUTE_ADMIN) },
-                )
-            }
-            if (session == null) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.account_sign_in)) },
-                    onClick = { expanded = false; onSignIn() },
-                )
-            } else {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.account_sign_out)) },
-                    onClick = { expanded = false; onSignOut() },
-                )
-            }
-        }
-    }
+private fun MenuCaption(text: String) {
+    Text(
+        text = text.uppercase(),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontWeight = FontWeight.Bold,
+    )
+}
+
+private fun languageFlag(tag: String): String = when (tag) {
+    "es" -> "🇨🇱"
+    "en" -> "🇺🇸"
+    else -> "🌐"
 }
 
 /** Bottom-bar destinations, filtered by the signed-in role. */
 private fun visibleDestinations(session: SessionUser?): List<Destination> = buildList {
     add(Destination(ROUTE_DISCOVER, R.string.nav_home, Icons.Outlined.Home))
     add(Destination(ROUTE_EVENTS, R.string.nav_events, Icons.Outlined.Event))
-    if (session != null) {
-        add(Destination(ROUTE_ORGANIZER, R.string.nav_organizer, Icons.Outlined.Dashboard))
-        add(Destination(ROUTE_SCANNER, R.string.nav_scanner, Icons.Outlined.QrCodeScanner))
-    }
     if (session?.role == UserRole.Admin) {
         add(Destination(ROUTE_ADMIN, R.string.nav_admin, Icons.Outlined.AdminPanelSettings))
     }

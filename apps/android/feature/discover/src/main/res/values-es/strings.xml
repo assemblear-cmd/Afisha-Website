@@ -7,7 +7,8 @@
     <string name="discover_error_body">Revisa tu conexión e inténtalo de nuevo.</string>
     <string name="discover_retry">Reintentar</string>
     <string name="discover_city">Santiago</string>
-    <string name="discover_search_hint">Busca eventos, lugares, categorías</string>
+    <string name="discover_search_hint">Buscar eventos</string>
+    <string name="discover_filter_categories">Filtrar por categoría</string>
     <string name="discover_all_categories">Todos</string>
     <string name="discover_popular_title">Populares ahora</string>
     <string name="discover_popular_body">Una selección de eventos destacados del feed de DondeGO.</string>
