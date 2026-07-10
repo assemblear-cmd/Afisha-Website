@@ -6,6 +6,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.HTTP
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -45,6 +46,17 @@ interface DondeGoApi {
 
     @GET("api/auth/me")
     suspend fun me(): MeResponse
+
+    // --- Registration onboarding & per-account feed preferences ---
+
+    @GET("api/v1/onboarding/options")
+    suspend fun onboardingOptions(): OnboardingOptionsResponse
+
+    @GET("api/v1/me/preferences")
+    suspend fun myPreferences(): PreferencesDto
+
+    @PUT("api/v1/me/preferences")
+    suspend fun updatePreferences(@Body body: PreferencesRequest): PreferencesDto
 
     // --- Account tickets (Bearer required) ---
 
@@ -192,6 +204,37 @@ data class RegisterRequest(
 
 @Serializable
 data class GoogleAuthRequest(val idToken: String)
+
+// --- Onboarding / preferences DTOs ---
+
+@Serializable
+data class OnboardingOptionsResponse(
+    val categories: List<CategoryDto> = emptyList(),
+    val venues: List<VenueOptionDto> = emptyList(),
+)
+
+@Serializable
+data class VenueOptionDto(
+    val slug: String,
+    val name: String,
+    val city: String = "Santiago",
+    val categories: List<String> = emptyList(),
+    val upcomingCount: Int = 0,
+)
+
+@Serializable
+data class PreferencesDto(
+    val preferredCategories: List<String> = emptyList(),
+    val preferredVenues: List<String> = emptyList(),
+)
+
+// No property defaults: both lists always serialize, PUT replaces the account
+// preferences atomically.
+@Serializable
+data class PreferencesRequest(
+    val preferredCategories: List<String>,
+    val preferredVenues: List<String>,
+)
 
 @Serializable
 data class UserDto(

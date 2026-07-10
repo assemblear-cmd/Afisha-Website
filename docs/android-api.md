@@ -20,6 +20,9 @@ covered by `tests/unit/mobile-events.test.ts`):
 - Discovery: `GET /api/v1/feed`, `/api/v1/events`, `/api/v1/categories`,
   `/api/v1/events/native/{id}`, `/api/v1/events/scraped/{id}`.
 - Account: `GET /api/v1/me/tickets`, `/api/v1/me/tickets/{id}` (QR payload).
+- Onboarding/preferences (2026-07-10): `GET /api/v1/onboarding/options`,
+  `GET|PUT /api/v1/me/preferences`; `feed`/`events` and the web home page
+  order preferred venues/categories first for signed-in users (§3.5).
 - Scanner: `GET /api/v1/scanner/events` (picker); check-in reuses the existing
   `POST /api/scan`.
 
@@ -588,6 +591,48 @@ possible, and inventory is released.
 Ownership rule for ticket detail: `ticket.ownerUserId == user.id` or
 `order.userId == user.id` or `order.buyerEmail == user.email`
 case-insensitive, or admin.
+
+#### GET `/api/v1/onboarding/options`
+
+- Auth: none (public).
+- Options for the two registration onboarding questions.
+- Response 200:
+
+  ```json
+  {
+    "categories": [{ "slug": "concierto", "count": 12 }],
+    "venues": [
+      {
+        "slug": "teatro-municipal",
+        "name": "Teatro Municipal",
+        "city": "Santiago",
+        "categories": ["teatro"],
+        "upcomingCount": 8
+      }
+    ]
+  }
+  ```
+
+- `categories` is count-ordered like `/api/v1/categories`. `venues` are
+  active theaters ordered by upcoming activity; aggregator platforms
+  (`ticketera`, `plataforma-cultural`, `productora`) are excluded.
+
+#### GET `/api/v1/me/preferences`
+
+- Auth: Bearer required.
+- Response 200: `{ "preferredCategories": ["concierto"], "preferredVenues": ["gam"] }`
+
+#### PUT `/api/v1/me/preferences`
+
+- Auth: Bearer required.
+- Body: `{ "preferredCategories": [...], "preferredVenues": [...] }` — each
+  list optional, but at least one must be present; a provided list replaces
+  the stored one. Unknown category slugs and unknown/inactive venue slugs are
+  silently dropped.
+- Response 200: the saved lists (same shape as GET).
+- Effect: `/api/v1/feed`, `/api/v1/events` and the web home page order
+  matching events first for this account (venue match > category match,
+  date order within each bucket).
 
 #### GET `/api/v1/me/tickets`
 

@@ -1,44 +1,33 @@
 package dondeg.app.ui
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AdminPanelSettings
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Dashboard
-import androidx.compose.material.icons.outlined.Event
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.ConfirmationNumber
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.QrCodeScanner
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -50,34 +39,45 @@ import dondeg.app.R
 import dondeg.app.core.data.DondeGoAppContainer
 import dondeg.app.core.designsystem.DondeGoTheme
 import dondeg.app.core.model.EventKind
-import dondeg.app.core.model.SessionUser
-import dondeg.app.core.model.UserRole
 import dondeg.app.feature.admin.AdminScreen
 import dondeg.app.feature.auth.AuthScreen
 import dondeg.app.feature.discover.DiscoverScreen
+import dondeg.app.feature.discover.EventsScreen
+import dondeg.app.feature.discover.SavedScreen
 import dondeg.app.feature.eventdetail.EventDetailScreen
 import dondeg.app.feature.organizer.OrganizerScreen
-import dondeg.app.feature.discover.EventsScreen
 import dondeg.app.feature.scanner.ScannerScreen
 import dondeg.app.feature.tickets.TicketsScreen
 import kotlinx.coroutines.launch
 
 private const val ROUTE_DISCOVER = "discover"
-private const val ROUTE_EVENTS = "events"
+private const val ROUTE_SAVED = "saved"
 private const val ROUTE_TICKETS = "tickets"
+private const val ROUTE_ACCOUNT = "account"
+private const val ROUTE_YOUR_EVENTS = "your_events"
 private const val ROUTE_ORGANIZER = "organizer"
 private const val ROUTE_SCANNER = "scanner"
 private const val ROUTE_ADMIN = "admin"
 private const val ROUTE_AUTH = "auth"
+private const val ROUTE_ONBOARDING = "onboarding/{mode}"
 private const val ROUTE_DETAIL = "detail/{kind}/{id}"
 
 private data class Destination(
     val route: String,
     val labelRes: Int,
     val icon: ImageVector,
+    val selectedIcon: ImageVector = icon,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+// Reference-design tab bar: Discover, Saved, Tickets, Account — always the
+// same four for everyone. Organizer/scanner/admin tools live in Account.
+private val BOTTOM_DESTINATIONS = listOf(
+    Destination(ROUTE_DISCOVER, R.string.nav_discover, Icons.Outlined.Home, Icons.Filled.Home),
+    Destination(ROUTE_SAVED, R.string.nav_saved, Icons.Outlined.FavoriteBorder, Icons.Filled.Favorite),
+    Destination(ROUTE_TICKETS, R.string.nav_tickets, Icons.Outlined.ConfirmationNumber),
+    Destination(ROUTE_ACCOUNT, R.string.nav_account, Icons.Outlined.Person, Icons.Filled.Person),
+)
+
 @Composable
 fun DondeGoApp(container: DondeGoAppContainer) {
     val navController = rememberNavController()
@@ -100,8 +100,11 @@ fun DondeGoApp(container: DondeGoAppContainer) {
         }
     }
 
+    // Bumped when onboarding/preference edits save, so the personalized feed
+    // reloads with the new server-side ordering.
+    var prefsVersion by remember { mutableIntStateOf(0) }
+
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-    val destinations = remember(session) { visibleDestinations(session) }
 
     fun switchTab(route: String) {
         navController.navigate(route) {
@@ -113,49 +116,27 @@ fun DondeGoApp(container: DondeGoAppContainer) {
 
     DondeGoTheme {
         Scaffold(
-            topBar = {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        titleContentColor = MaterialTheme.colorScheme.onBackground,
-                        actionIconContentColor = MaterialTheme.colorScheme.onBackground,
-                    ),
-                    title = {
-                        Text(
-                            text = stringResource(R.string.app_name),
-                            modifier = Modifier.clickable { switchTab(ROUTE_DISCOVER) },
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    },
-                    actions = {
-                        LanguageMenu()
-                        if (session == null) {
-                            TextButton(onClick = { navController.navigate(ROUTE_AUTH) }) {
-                                Text(
-                                    text = stringResource(R.string.account_sign_in),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
-                        }
-                        MainMenu(
-                            session = session,
-                            onNavigate = { route -> switchTab(route) },
-                            onSignIn = { navController.navigate(ROUTE_AUTH) },
-                            onSignOut = { container.authRepository.logout() },
-                        )
-                    },
-                )
-            },
             bottomBar = {
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                    destinations.forEach { destination ->
+                    BOTTOM_DESTINATIONS.forEach { destination ->
+                        val selected = currentRoute == destination.route
                         NavigationBarItem(
-                            selected = currentRoute == destination.route,
+                            selected = selected,
                             onClick = { switchTab(destination.route) },
-                            icon = { Icon(destination.icon, contentDescription = null) },
+                            icon = {
+                                Icon(
+                                    imageVector = if (selected) destination.selectedIcon else destination.icon,
+                                    contentDescription = null,
+                                )
+                            },
                             label = { Text(stringResource(destination.labelRes)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.onBackground,
+                                selectedTextColor = MaterialTheme.colorScheme.onBackground,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                indicatorColor = Color.Transparent,
+                            ),
                         )
                     }
                 }
@@ -175,9 +156,22 @@ fun DondeGoApp(container: DondeGoAppContainer) {
                         onOpenEvent = { kind, id ->
                             navController.navigate("detail/${kind.name}/${id}")
                         },
+                        refreshKey = "${session?.id.orEmpty()}-$prefsVersion",
                     )
                 }
-                composable(ROUTE_EVENTS) {
+                composable(ROUTE_SAVED) {
+                    SavedScreen(
+                        likesRepository = container.likesRepository,
+                        likedKeys = likedKeys,
+                        onToggleLike = onToggleLike,
+                        onOpenEvent = { kind, id ->
+                            navController.navigate("detail/${kind.name}/${id}")
+                        },
+                        isSignedIn = session != null,
+                        onSignIn = { navController.navigate(ROUTE_AUTH) },
+                    )
+                }
+                composable(ROUTE_YOUR_EVENTS) {
                     EventsScreen(
                         likesRepository = container.likesRepository,
                         likedKeys = likedKeys,
@@ -221,12 +215,27 @@ fun DondeGoApp(container: DondeGoAppContainer) {
                         onSignIn = { navController.navigate(ROUTE_AUTH) },
                     )
                 }
+                composable(ROUTE_ACCOUNT) {
+                    AccountScreen(
+                        session = session,
+                        preferencesRepository = container.preferencesRepository,
+                        prefsVersion = prefsVersion,
+                        onSignIn = { navController.navigate(ROUTE_AUTH) },
+                        onSignOut = { container.authRepository.logout() },
+                        onEditInterests = { navController.navigate("onboarding/interests") },
+                        onEditVenues = { navController.navigate("onboarding/venues") },
+                        onOpenYourEvents = { navController.navigate(ROUTE_YOUR_EVENTS) },
+                        onOpenOrganizer = { navController.navigate(ROUTE_ORGANIZER) },
+                        onOpenScanner = { navController.navigate(ROUTE_SCANNER) },
+                        onOpenAdmin = { navController.navigate(ROUTE_ADMIN) },
+                    )
+                }
                 composable(ROUTE_ORGANIZER) {
                     OrganizerScreen(
                         session = session,
                         onSignIn = { navController.navigate(ROUTE_AUTH) },
                         onOpenWeb = { uriHandler.openUri(container.webUrl("/organizer")) },
-                        onGoToScanner = { switchTab(ROUTE_SCANNER) },
+                        onGoToScanner = { navController.navigate(ROUTE_SCANNER) },
                     )
                 }
                 composable(ROUTE_SCANNER) {
@@ -246,124 +255,38 @@ fun DondeGoApp(container: DondeGoAppContainer) {
                     AuthScreen(
                         repository = container.authRepository,
                         googleWebClientId = container.googleWebClientId,
-                        onAuthenticated = { navController.popBackStack() },
+                        onAuthenticated = { registeredNewAccount ->
+                            if (registeredNewAccount) {
+                                // Fresh account → the two onboarding questions
+                                // (categories + venues), replacing the auth screen.
+                                navController.navigate("onboarding/full") {
+                                    popUpTo(ROUTE_AUTH) { inclusive = true }
+                                }
+                            } else {
+                                navController.popBackStack()
+                            }
+                        },
+                    )
+                }
+                composable(
+                    route = ROUTE_ONBOARDING,
+                    arguments = listOf(navArgument("mode") { type = NavType.StringType }),
+                ) { backStackEntry ->
+                    val mode = when (backStackEntry.arguments?.getString("mode")) {
+                        "interests" -> OnboardingMode.Interests
+                        "venues" -> OnboardingMode.Venues
+                        else -> OnboardingMode.Full
+                    }
+                    OnboardingScreen(
+                        repository = container.preferencesRepository,
+                        mode = mode,
+                        onClose = { saved ->
+                            if (saved) prefsVersion += 1
+                            navController.popBackStack()
+                        },
                     )
                 }
             }
         }
-    }
-}
-
-/**
- * Language switcher in the top bar. Picking a language persists the choice and
- * recreates the Activity so every screen re-resolves its strings immediately.
- */
-@Composable
-private fun LanguageMenu() {
-    val context = LocalContext.current
-    val currentLang = LocalConfiguration.current.locales[0].language
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(
-                imageVector = Icons.Outlined.Language,
-                contentDescription = stringResource(R.string.language_menu),
-            )
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            AppLanguage.entries.forEach { language ->
-                DropdownMenuItem(
-                    text = { Text(language.label) },
-                    onClick = {
-                        expanded = false
-                        if (language.tag != currentLang) {
-                            AppLocale.persist(context, language.tag)
-                            context.findActivity()?.recreate()
-                        }
-                    },
-                    trailingIcon = if (language.tag == currentLang) {
-                        { Icon(Icons.Outlined.Check, contentDescription = null) }
-                    } else {
-                        null
-                    },
-                )
-            }
-        }
-    }
-}
-
-/**
- * Top-bar navigation + account menu. Gives access to every section (including
- * the ones not in the bottom bar, like My tickets) and sign in / sign out.
- */
-@Composable
-private fun MainMenu(
-    session: SessionUser?,
-    onNavigate: (String) -> Unit,
-    onSignIn: () -> Unit,
-    onSignOut: () -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(
-                imageVector = Icons.Outlined.Menu,
-                contentDescription = stringResource(R.string.menu_more),
-            )
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.nav_home)) },
-                onClick = { expanded = false; onNavigate(ROUTE_DISCOVER) },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.nav_events)) },
-                onClick = { expanded = false; onNavigate(ROUTE_EVENTS) },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.nav_tickets)) },
-                onClick = { expanded = false; onNavigate(ROUTE_TICKETS) },
-            )
-            if (session != null) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.nav_organizer)) },
-                    onClick = { expanded = false; onNavigate(ROUTE_ORGANIZER) },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.nav_scanner)) },
-                    onClick = { expanded = false; onNavigate(ROUTE_SCANNER) },
-                )
-            }
-            if (session?.role == UserRole.Admin) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.nav_admin)) },
-                    onClick = { expanded = false; onNavigate(ROUTE_ADMIN) },
-                )
-            }
-            if (session == null) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.account_sign_in)) },
-                    onClick = { expanded = false; onSignIn() },
-                )
-            } else {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.account_sign_out)) },
-                    onClick = { expanded = false; onSignOut() },
-                )
-            }
-        }
-    }
-}
-
-/** Bottom-bar destinations, filtered by the signed-in role. */
-private fun visibleDestinations(session: SessionUser?): List<Destination> = buildList {
-    add(Destination(ROUTE_DISCOVER, R.string.nav_home, Icons.Outlined.Home))
-    add(Destination(ROUTE_EVENTS, R.string.nav_events, Icons.Outlined.Event))
-    if (session != null) {
-        add(Destination(ROUTE_ORGANIZER, R.string.nav_organizer, Icons.Outlined.Dashboard))
-        add(Destination(ROUTE_SCANNER, R.string.nav_scanner, Icons.Outlined.QrCodeScanner))
-    }
-    if (session?.role == UserRole.Admin) {
-        add(Destination(ROUTE_ADMIN, R.string.nav_admin, Icons.Outlined.AdminPanelSettings))
     }
 }

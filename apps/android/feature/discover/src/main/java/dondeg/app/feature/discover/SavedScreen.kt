@@ -33,12 +33,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * Events tab: the user's own organized events on top (tap → the public event
- * page, which offers "enter as organizer"), and liked feed items below.
- */
+/** Saved tab: the events the user liked, newest first. */
 @Composable
-fun EventsScreen(
+fun SavedScreen(
     likesRepository: LikesRepository,
     likedKeys: Set<String>,
     onToggleLike: (String) -> Unit,
@@ -47,11 +44,12 @@ fun EventsScreen(
     onSignIn: () -> Unit,
 ) {
     if (!isSignedIn) {
-        SignedOutEvents(onSignIn = onSignIn)
+        SignedOutSaved(onSignIn = onSignIn)
         return
     }
 
-    val viewModel = viewModel { EventsViewModel(likesRepository) }
+    // Keyed by the liked set so un/re-liking elsewhere refreshes this list.
+    val viewModel = viewModel(key = "saved-${likedKeys.size}") { SavedViewModel(likesRepository) }
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Box(
@@ -67,27 +65,26 @@ fun EventsScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                item { EventsSectionHeader(stringResource(R.string.events_my_title)) }
-                if (state.myEvents.isEmpty()) {
-                    item { EventsHint(stringResource(R.string.events_my_empty)) }
-                } else {
-                    items(state.myEvents, key = { "mine_${it.id}" }) { event ->
-                        EventRow(
-                            event = event,
-                            liked = likedKeys.contains(event.id),
-                            onToggleLike = { onToggleLike(event.id) },
-                            onClick = { onOpenEvent(event.kind, event.id) },
+                item {
+                    Text(
+                        text = stringResource(R.string.saved_title),
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                }
+                if (state.liked.isEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.saved_empty),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                }
-
-                item { EventsSectionHeader(stringResource(R.string.events_liked_title)) }
-                if (state.liked.isEmpty()) {
-                    item { EventsHint(stringResource(R.string.events_liked_empty)) }
                 } else {
-                    items(state.liked, key = { "liked_${it.id}" }) { event ->
+                    items(state.liked, key = { it.id }) { event ->
                         EventRow(
                             event = event,
                             liked = likedKeys.contains(event.id),
@@ -102,26 +99,7 @@ fun EventsScreen(
 }
 
 @Composable
-private fun EventsSectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.onBackground,
-        fontWeight = FontWeight.Bold,
-    )
-}
-
-@Composable
-private fun EventsHint(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-}
-
-@Composable
-private fun SignedOutEvents(onSignIn: () -> Unit) {
+private fun SignedOutSaved(onSignIn: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -131,13 +109,13 @@ private fun SignedOutEvents(onSignIn: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = stringResource(R.string.events_signed_out_title),
+            text = stringResource(R.string.saved_signed_out_title),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = stringResource(R.string.events_signed_out_body),
+            text = stringResource(R.string.saved_signed_out_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
@@ -150,36 +128,24 @@ private fun SignedOutEvents(onSignIn: () -> Unit) {
 
 // --- State & ViewModel -------------------------------------------------------
 
-internal data class EventsUiState(
+internal data class SavedUiState(
     val loading: Boolean = true,
-    val myEvents: List<EventSummary> = emptyList(),
     val liked: List<EventSummary> = emptyList(),
-    val error: String? = null,
 )
 
-internal class EventsViewModel(
+internal class SavedViewModel(
     private val likesRepository: LikesRepository,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(EventsUiState())
-    val state: StateFlow<EventsUiState> = _state
+    private val _state = MutableStateFlow(SavedUiState())
+    val state: StateFlow<SavedUiState> = _state
 
-    init { load() }
-
-    fun load() {
+    init {
         viewModelScope.launch {
-            _state.update { it.copy(loading = true, error = null) }
-            val mine = likesRepository.myEvents()
             val liked = likesRepository.likedEvents()
             _state.update {
                 it.copy(
                     loading = false,
-                    myEvents = (mine as? ApiResult.Success)?.value ?: emptyList(),
                     liked = (liked as? ApiResult.Success)?.value ?: emptyList(),
-                    error = if (mine !is ApiResult.Success && liked !is ApiResult.Success) {
-                        it.error ?: "error"
-                    } else {
-                        null
-                    },
                 )
             }
         }

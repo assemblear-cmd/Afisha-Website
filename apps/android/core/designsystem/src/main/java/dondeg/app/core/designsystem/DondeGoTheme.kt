@@ -19,7 +19,15 @@ val DondeGoMuted = Color(0xFF6F7287)
 val DondeGoSurface = Color(0xFFF8F7FA)
 val DondeGoSuccess = Color(0xFF3EB489)
 
-private val CanvasLight = Color.White
+// Near-black used for the pill buttons/avatars of the onboarding and account
+// screens (reference design uses solid black CTAs on an eggshell canvas).
+val DondeGoPillBlack = Color(0xFF16141A)
+
+// Highlight accent for onboarding banners (reference design's blue card).
+val DondeGoBannerBlue = Color(0xFF3B47F1)
+
+// Soft eggshell canvas: warmer than plain white, matches the reference shots.
+private val CanvasLight = Color(0xFFF2F1EB)
 private val CardLight = Color.White
 private val CanvasDark = Color(0xFF110F1A)
 private val CardDark = Color(0xFF1B1727)

@@ -74,6 +74,19 @@ function finalEventCategories(
   return categories.length > 0 ? categories : ['otros'];
 }
 
+/**
+ * Normalized taxonomy categories for a native organizer Event row (legacy
+ * Eventbrite-style categories are mapped, free-text ones inferred). Exported
+ * for preference-based reordering of native event lists.
+ */
+export function organizerEventCategories(event: {
+  category: string;
+  title?: string | null;
+  description?: string | null;
+}): EventCategory[] {
+  return eventCategories(event);
+}
+
 function eventCategories(event: { category: string; title?: string | null; description?: string | null }): EventCategory[] {
   const category = event.category;
   const candidates = isEventCategory(category)

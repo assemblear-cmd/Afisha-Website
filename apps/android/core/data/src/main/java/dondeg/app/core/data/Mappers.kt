@@ -13,6 +13,7 @@ import dondeg.app.core.model.TicketStatus
 import dondeg.app.core.model.TicketSummary
 import dondeg.app.core.model.TicketTypeInfo
 import dondeg.app.core.model.UserRole
+import dondeg.app.core.model.VenueOption
 import dondeg.app.core.network.CategoryDto
 import dondeg.app.core.network.EventDetailDto
 import dondeg.app.core.network.EventSummaryDto
@@ -21,6 +22,7 @@ import dondeg.app.core.network.TicketDto
 import dondeg.app.core.network.TicketEventDto
 import dondeg.app.core.network.TicketTypeDto
 import dondeg.app.core.network.UserDto
+import dondeg.app.core.network.VenueOptionDto
 
 // DTO -> domain mapping in one place. Unknown wire values degrade to the
 // *Unknown enum members so old app versions survive new server states.
@@ -52,6 +54,14 @@ internal fun UserDto.toModel(): SessionUser =
     SessionUser(id = id, email = email, name = name, role = roleFromWire(role))
 
 internal fun CategoryDto.toModel(): CategoryCount = CategoryCount(slug = slug, count = count)
+
+internal fun VenueOptionDto.toModel(): VenueOption = VenueOption(
+    slug = slug,
+    name = name,
+    city = city,
+    categories = categories,
+    upcomingCount = upcomingCount,
+)
 
 internal fun EventSummaryDto.toModel(): EventSummary = EventSummary(
     id = id,

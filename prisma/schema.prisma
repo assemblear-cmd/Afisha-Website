@@ -14,6 +14,11 @@ model User {
   name         String
   // role: "visitor" (customer) | "organizer" | "admin"
   role         String   @default("visitor")
+  // Onboarding answers: event-category slugs (EVENT_CATEGORIES in
+  // src/lib/taxonomy.ts) and venue (Theater) slugs the user follows. They
+  // drive personalized feed ordering on web and mobile.
+  preferredCategories String[] @default([])
+  preferredVenues     String[] @default([])
   createdAt    DateTime @default(now())
   events       Event[]
   orders       Order[]

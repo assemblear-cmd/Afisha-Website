@@ -7,7 +7,7 @@
     <string name="discover_error_body">Revisa tu conexión e inténtalo de nuevo.</string>
     <string name="discover_retry">Reintentar</string>
     <string name="discover_city">Santiago</string>
-    <string name="discover_search_hint">Busca eventos, lugares, categorías</string>
+    <string name="discover_search_hint">Busca qué hacer</string>
     <string name="discover_all_categories">Todos</string>
     <string name="discover_popular_title">Populares ahora</string>
     <string name="discover_popular_body">Una selección de eventos destacados del feed de DondeGO.</string>
@@ -28,4 +28,8 @@
     <string name="events_signed_out_title">Inicia sesión para ver tus eventos</string>
     <string name="events_signed_out_body">Tus eventos organizados y con me gusta viven en tu cuenta.</string>
     <string name="events_sign_in">Iniciar sesión</string>
+    <string name="saved_title">Guardados</string>
+    <string name="saved_empty">Toca el corazón de un evento para guardarlo aquí.</string>
+    <string name="saved_signed_out_title">Inicia sesión para ver tus eventos guardados</string>
+    <string name="saved_signed_out_body">Tus eventos con me gusta viven en tu cuenta.</string>
 </resources>

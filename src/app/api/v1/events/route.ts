@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { errorHandler } from '@/lib/api-error';
+import { getCurrentUser } from '@/lib/auth';
 import { getUpcomingShows } from '@/lib/data/shows';
 import {
   filterListedShows,
@@ -7,12 +8,14 @@ import {
   paginate,
   parsePagination,
 } from '@/lib/mobile/events';
+import { getUserPreferences, prioritizeListedShows } from '@/lib/personalization';
 import { EVENT_CATEGORIES } from '@/lib/taxonomy';
 import { isDateKey } from '@/lib/weekend';
 
 // Unified, paginated event list (scraped Shows + published native Events).
 // Filters: category (taxonomy slug), query (text), date (YYYY-MM-DD in
-// America/Santiago), weekend=true, kind=native|scraped.
+// America/Santiago), weekend=true, kind=native|scraped. Signed-in users get
+// preference-first ordering (followed venues/categories before the rest).
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,8 +36,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'kind must be native or scraped.' }, { status: 400 });
     }
 
-    const shows = await getUpcomingShows();
-    const filtered = filterListedShows(shows, {
+    const [shows, user] = await Promise.all([getUpcomingShows(), getCurrentUser()]);
+    const prefs = user ? await getUserPreferences(user.id) : null;
+    const filtered = filterListedShows(prioritizeListedShows(shows, prefs), {
       category,
       query: params.get('query'),
       date,

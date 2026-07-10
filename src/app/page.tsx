@@ -7,10 +7,37 @@ import { TopCategoryNav } from '@/components/home/TopCategoryNav';
 import { WhereToGo } from '@/components/home/WhereToGo';
 import { Mosaic } from '@/components/home/Mosaic';
 import { WeekendFeature } from '@/components/home/WeekendFeature';
-import { getUpcomingShows } from '@/lib/data/shows';
+import { getCurrentUser } from '@/lib/auth';
+import { getUpcomingShows, organizerEventCategories } from '@/lib/data/shows';
+import {
+  getUserPreferences,
+  hasPreferences,
+  prioritizeListedShows,
+  type UserPreferences,
+} from '@/lib/personalization';
 import { getActivePromotedTiles } from '@/lib/promotion/homepage';
 
 export const dynamic = 'force-dynamic';
+
+/** Stable reorder of the native-events grid: preferred categories first. */
+function prioritizeEvents<T extends { category: string; title: string }>(
+  events: T[],
+  prefs: UserPreferences | null
+): T[] {
+  if (!hasPreferences(prefs)) return events;
+  return events
+    .map((event, index) => ({
+      event,
+      index,
+      score: organizerEventCategories(event).some((slug) =>
+        prefs!.preferredCategories.includes(slug)
+      )
+        ? 1
+        : 0,
+    }))
+    .sort((a, b) => (a.score !== b.score ? b.score - a.score : a.index - b.index))
+    .map((entry) => entry.event);
+}
 
 export default async function HomePage() {
   const t = getDictionary(getLocale()).home;
@@ -25,6 +52,12 @@ export default async function HomePage() {
     take: 8,
   });
   const shows = await getUpcomingShows();
+  // Signed-in visitors get their onboarding picks first: followed venues and
+  // categories lead the mosaic and the upcoming grid, date order otherwise.
+  const user = await getCurrentUser();
+  const prefs = user ? await getUserPreferences(user.id) : null;
+  const personalizedShows = prioritizeListedShows(shows, prefs);
+  const personalizedEvents = prioritizeEvents(events, prefs);
   // Paid homepage tile placements (approved/live, window covering now).
   // Positions without one keep the normal mosaic content.
   const promoted = Array.from((await getActivePromotedTiles()).values());
@@ -33,7 +66,11 @@ export default async function HomePage() {
     <main>
       <TopCategoryNav />
       <WhereToGo />
-      <Mosaic items={shows} promoted={promoted} />
+      <Mosaic
+        items={personalizedShows}
+        promoted={promoted}
+        preferredCategories={prefs?.preferredCategories}
+      />
       <WeekendFeature />
 
       {/* UPCOMING EVENTS */}
@@ -45,7 +82,7 @@ export default async function HomePage() {
               {t.seeAll} →
             </LinkButton>
           </div>
-          <EventGrid events={events} />
+          <EventGrid events={personalizedEvents} />
         </Container>
       </section>
     </main>
