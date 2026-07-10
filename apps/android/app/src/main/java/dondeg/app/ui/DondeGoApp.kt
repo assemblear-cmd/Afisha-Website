@@ -3,18 +3,17 @@ package dondeg.app.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AdminPanelSettings
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +38,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -49,6 +50,7 @@ import androidx.navigation.navArgument
 import dondeg.app.R
 import dondeg.app.core.data.DondeGoAppContainer
 import dondeg.app.core.designsystem.DondeGoTheme
+import dondeg.app.core.designsystem.categoryLabel
 import dondeg.app.core.model.EventKind
 import dondeg.app.core.model.SessionUser
 import dondeg.app.core.model.UserRole
@@ -75,6 +77,18 @@ private data class Destination(
     val route: String,
     val labelRes: Int,
     val icon: ImageVector,
+)
+
+// Category shortcuts shown in the main menu; mirrors the web's
+// FEATURED_EVENT_CATEGORIES so both menus stay in sync.
+private val MENU_CATEGORIES = listOf(
+    "concierto",
+    "festival",
+    "exposicion",
+    "charla",
+    "obra-de-teatro",
+    "evento-interactivo",
+    "otros",
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -111,6 +125,10 @@ fun DondeGoApp(container: DondeGoAppContainer) {
         }
     }
 
+    // Category picked in the main menu; consumed by DiscoverScreen after it
+    // applies the filter, so re-picking the same category works again later.
+    var categoryRequest by remember { mutableStateOf<String?>(null) }
+
     DondeGoTheme {
         Scaffold(
             topBar = {
@@ -129,7 +147,6 @@ fun DondeGoApp(container: DondeGoAppContainer) {
                         )
                     },
                     actions = {
-                        LanguageMenu()
                         if (session == null) {
                             TextButton(onClick = { navController.navigate(ROUTE_AUTH) }) {
                                 Text(
@@ -141,7 +158,10 @@ fun DondeGoApp(container: DondeGoAppContainer) {
                         }
                         MainMenu(
                             session = session,
-                            onNavigate = { route -> switchTab(route) },
+                            onSelectCategory = { slug ->
+                                categoryRequest = slug
+                                switchTab(ROUTE_DISCOVER)
+                            },
                             onSignIn = { navController.navigate(ROUTE_AUTH) },
                             onSignOut = { container.authRepository.logout() },
                         )
@@ -175,6 +195,8 @@ fun DondeGoApp(container: DondeGoAppContainer) {
                         onOpenEvent = { kind, id ->
                             navController.navigate("detail/${kind.name}/${id}")
                         },
+                        categoryRequest = categoryRequest,
+                        onCategoryRequestConsumed = { categoryRequest = null },
                     )
                 }
                 composable(ROUTE_EVENTS) {
@@ -255,54 +277,19 @@ fun DondeGoApp(container: DondeGoAppContainer) {
 }
 
 /**
- * Language switcher in the top bar. Picking a language persists the choice and
- * recreates the Activity so every screen re-resolves its strings immediately.
- */
-@Composable
-private fun LanguageMenu() {
-    val context = LocalContext.current
-    val currentLang = LocalConfiguration.current.locales[0].language
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(
-                imageVector = Icons.Outlined.Language,
-                contentDescription = stringResource(R.string.language_menu),
-            )
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            AppLanguage.entries.forEach { language ->
-                DropdownMenuItem(
-                    text = { Text(language.label) },
-                    onClick = {
-                        expanded = false
-                        if (language.tag != currentLang) {
-                            AppLocale.persist(context, language.tag)
-                            context.findActivity()?.recreate()
-                        }
-                    },
-                    trailingIcon = if (language.tag == currentLang) {
-                        { Icon(Icons.Outlined.Check, contentDescription = null) }
-                    } else {
-                        null
-                    },
-                )
-            }
-        }
-    }
-}
-
-/**
- * Top-bar navigation + account menu. Gives access to every section (including
- * the ones not in the bottom bar, like My tickets) and sign in / sign out.
+ * Main menu: account action on top, language switch (flags), then event
+ * category shortcuts that filter the home feed. Navigation sections live in
+ * the bottom bar; organizer tools live inside "My events".
  */
 @Composable
 private fun MainMenu(
     session: SessionUser?,
-    onNavigate: (String) -> Unit,
+    onSelectCategory: (String) -> Unit,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val currentLang = LocalConfiguration.current.locales[0].language
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
@@ -311,58 +298,103 @@ private fun MainMenu(
                 contentDescription = stringResource(R.string.menu_more),
             )
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.width(236.dp),
+            shape = RoundedCornerShape(20.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.nav_home)) },
-                onClick = { expanded = false; onNavigate(ROUTE_DISCOVER) },
+                text = {
+                    Text(
+                        text = stringResource(
+                            if (session == null) R.string.account_sign_in else R.string.account_sign_out,
+                        ),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    if (session == null) onSignIn() else onSignOut()
+                },
             )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.nav_events)) },
-                onClick = { expanded = false; onNavigate(ROUTE_EVENTS) },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.nav_tickets)) },
-                onClick = { expanded = false; onNavigate(ROUTE_TICKETS) },
-            )
-            if (session != null) {
+
+            MenuDivider()
+            MenuSectionLabel(stringResource(R.string.language_menu))
+            AppLanguage.entries.forEach { language ->
+                val selected = language.tag == currentLang
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.nav_organizer)) },
-                    onClick = { expanded = false; onNavigate(ROUTE_ORGANIZER) },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.nav_scanner)) },
-                    onClick = { expanded = false; onNavigate(ROUTE_SCANNER) },
+                    text = {
+                        Text(
+                            text = "${language.flag}   ${language.label}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        if (!selected) {
+                            AppLocale.persist(context, language.tag)
+                            context.findActivity()?.recreate()
+                        }
+                    },
                 )
             }
-            if (session?.role == UserRole.Admin) {
+
+            MenuDivider()
+            MenuSectionLabel(stringResource(R.string.menu_categories))
+            MENU_CATEGORIES.forEach { slug ->
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.nav_admin)) },
-                    onClick = { expanded = false; onNavigate(ROUTE_ADMIN) },
-                )
-            }
-            if (session == null) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.account_sign_in)) },
-                    onClick = { expanded = false; onSignIn() },
-                )
-            } else {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.account_sign_out)) },
-                    onClick = { expanded = false; onSignOut() },
+                    text = {
+                        Text(
+                            text = categoryLabel(slug),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onSelectCategory(slug)
+                    },
                 )
             }
         }
     }
 }
 
-/** Bottom-bar destinations, filtered by the signed-in role. */
+@Composable
+private fun MenuDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+    )
+}
+
+@Composable
+private fun MenuSectionLabel(text: String) {
+    Text(
+        text = text.uppercase(),
+        modifier = Modifier.padding(start = 16.dp, top = 6.dp, end = 16.dp, bottom = 4.dp),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 1.2.sp,
+    )
+}
+
+/**
+ * Bottom-bar destinations. Organizer and Scanner are intentionally absent:
+ * they are per-event tools reached from "My events" after creating an event.
+ */
 private fun visibleDestinations(session: SessionUser?): List<Destination> = buildList {
     add(Destination(ROUTE_DISCOVER, R.string.nav_home, Icons.Outlined.Home))
     add(Destination(ROUTE_EVENTS, R.string.nav_events, Icons.Outlined.Event))
-    if (session != null) {
-        add(Destination(ROUTE_ORGANIZER, R.string.nav_organizer, Icons.Outlined.Dashboard))
-        add(Destination(ROUTE_SCANNER, R.string.nav_scanner, Icons.Outlined.QrCodeScanner))
-    }
     if (session?.role == UserRole.Admin) {
         add(Destination(ROUTE_ADMIN, R.string.nav_admin, Icons.Outlined.AdminPanelSettings))
     }

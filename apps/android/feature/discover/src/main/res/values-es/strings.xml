@@ -9,8 +9,6 @@
     <string name="discover_city">Santiago</string>
     <string name="discover_search_hint">Busca eventos, lugares, categorías</string>
     <string name="discover_all_categories">Todos</string>
-    <string name="discover_popular_title">Populares ahora</string>
-    <string name="discover_popular_body">Una selección de eventos destacados del feed de DondeGO.</string>
     <string name="discover_upcoming_title">Próximos eventos</string>
     <string name="discover_upcoming_body_all">Novedades ordenadas por fecha.</string>
     <string name="discover_upcoming_body_category">Filtrado por %1$s.</string>

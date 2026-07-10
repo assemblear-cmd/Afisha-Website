@@ -42,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,11 +87,22 @@ fun DiscoverScreen(
     likedKeys: Set<String>,
     onToggleLike: (String) -> Unit,
     onOpenEvent: (EventKind, String) -> Unit,
+    categoryRequest: String? = null,
+    onCategoryRequestConsumed: () -> Unit = {},
 ) {
     val viewModel = viewModel {
         DiscoverViewModel(discoveryRepository, eventsRepository)
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Category picked in the app's main menu; apply it once, then hand the
+    // slot back so the same category can be requested again later.
+    LaunchedEffect(categoryRequest) {
+        if (categoryRequest != null) {
+            viewModel.onCategory(categoryRequest)
+            onCategoryRequestConsumed()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -222,13 +234,14 @@ private fun DiscoverContent(
 
         if (feed.hero.isNotEmpty() && !state.hasFilters) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                SectionHeader(
-                    title = stringResource(R.string.discover_popular_title),
-                    body = stringResource(R.string.discover_popular_body),
+                // One hero per category, so everything visible above the fold
+                // comes from a different category.
+                HeroRail(
+                    events = feed.hero
+                        .distinctBy { it.categories.firstOrNull() ?: "otros" }
+                        .take(7),
+                    onOpenEvent = onOpenEvent,
                 )
-            }
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                HeroRail(events = feed.hero.take(7), onOpenEvent = onOpenEvent)
             }
         }
 
@@ -657,7 +670,7 @@ internal class DiscoverViewModel(
                     it.copy(
                         loading = false,
                         feed = result.value,
-                        listing = result.value.upcoming,
+                        listing = diversifyByCategory(result.value.upcoming),
                         listingTotal = result.value.total,
                     )
                 }
@@ -676,7 +689,7 @@ internal class DiscoverViewModel(
                         refreshing = false,
                         error = null,
                         feed = result.value,
-                        listing = if (filtered) it.listing else result.value.upcoming,
+                        listing = if (filtered) it.listing else diversifyByCategory(result.value.upcoming),
                         listingTotal = if (filtered) it.listingTotal else result.value.total,
                     )
                 }
@@ -710,7 +723,7 @@ internal class DiscoverViewModel(
                     it.copy(
                         filtering = false,
                         listingError = null,
-                        listing = it.feed?.upcoming ?: emptyList(),
+                        listing = it.feed?.upcoming?.let(::diversifyByCategory) ?: emptyList(),
                         listingTotal = it.feed?.total ?: 0,
                     )
                 }
@@ -740,4 +753,24 @@ internal class DiscoverViewModel(
         is ApiResult.UnknownError -> result.throwable.message.orEmpty()
         is ApiResult.Success -> ""
     }
+}
+
+/**
+ * Round-robin reorder by primary category: every category appears once before
+ * any category repeats, so the visible part of the home feed always shows
+ * events from distinct categories. Date order is preserved within a category.
+ */
+private fun diversifyByCategory(events: List<EventSummary>): List<EventSummary> {
+    val queues = LinkedHashMap<String, ArrayDeque<EventSummary>>()
+    for (event in events) {
+        val key = event.categories.firstOrNull() ?: "otros"
+        queues.getOrPut(key) { ArrayDeque() }.add(event)
+    }
+    val result = ArrayList<EventSummary>(events.size)
+    while (result.size < events.size) {
+        for (queue in queues.values) {
+            queue.removeFirstOrNull()?.let(result::add)
+        }
+    }
+    return result
 }

@@ -1,13 +1,11 @@
 <resources>
     <string name="app_name">DondeGO</string>
     <string name="nav_home">Home</string>
-    <string name="nav_tickets">My tickets</string>
-    <string name="nav_organizer">Organizer</string>
-    <string name="nav_scanner">Scanner</string>
     <string name="nav_admin">Admin</string>
     <string name="account_sign_in">Log in</string>
     <string name="account_sign_out">Sign out</string>
     <string name="language_menu">Language</string>
     <string name="nav_events">Events</string>
     <string name="menu_more">Menu</string>
+    <string name="menu_categories">Categories</string>
 </resources>

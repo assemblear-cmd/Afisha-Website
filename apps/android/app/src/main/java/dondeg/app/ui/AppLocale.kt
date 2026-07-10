@@ -12,9 +12,9 @@ import java.util.Locale
  * Android resource qualifier (`values-es`, default `values` = English) and the
  * backend locale codes exposed by `/api/v1/config`.
  */
-enum class AppLanguage(val tag: String, val label: String) {
-    English("en", "English"),
-    Spanish("es", "Español"),
+enum class AppLanguage(val tag: String, val label: String, val flag: String) {
+    English("en", "English", "🇺🇸"),
+    Spanish("es", "Español", "🇪🇸"),
 }
 
 /**
