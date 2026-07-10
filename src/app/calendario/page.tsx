@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Badge, Container } from '@/components/ui';
+import { LikeButton } from '@/components/events/LikeButton';
 import { getDictionary } from '@/i18n/config';
 import { getLocale } from '@/i18n/getLocale';
 import { eventCategoryLabel } from '@/i18n/homeNav';
+import { getCurrentUser } from '@/lib/auth';
 import { getCalendarShows, isEventCategory, type CalendarShow } from '@/lib/data/shows';
+import { getLikedKeys, listedShowWireId } from '@/lib/data/likes';
 import { formatListingPrice, formatTime } from '@/lib/format';
 import { EVENT_CATEGORIES, type EventCategory } from '@/lib/taxonomy';
 
@@ -120,6 +123,8 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   const days = groupByDayAndCategory(shows, activeCategory);
   const firstDate = days[0]?.date;
   const lastDate = days[days.length - 1]?.date;
+  const user = await getCurrentUser();
+  const likedKeys = user ? await getLikedKeys(user.id) : new Set<string>();
 
   return (
     <main className="min-h-screen bg-surface">
@@ -199,35 +204,69 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
                       </div>
 
                       <ol className="divide-y divide-ink/5">
-                        {bucket.shows.map((show) => (
-                          <li key={show.id} className="grid gap-2 px-4 py-3 md:grid-cols-[5.5rem_1fr_auto] md:items-center">
-                            <p className="text-sm font-bold text-coral">
-                              {show.startsAt ? formatTime(show.startsAt.toISOString(), locale) : t.tba}
-                            </p>
-                            <div className="min-w-0">
-                              <h4 className="font-semibold leading-snug text-ink">{show.title}</h4>
-                              <p className="mt-0.5 text-sm text-muted">
-                                {show.theater.name}
-                                {show.venue ? ` · ${show.venue}` : ''}
+                        {bucket.shows.map((show) => {
+                          const external = show.sourceUrl ? /^https?:/.test(show.sourceUrl) : false;
+                          const wireId = listedShowWireId(show);
+                          // The title carries a stretched link (after:absolute
+                          // after:inset-0) so the whole row is clickable, while
+                          // the like button (z-10) stays independently tappable.
+                          const titleLinkClass =
+                            'text-ink no-underline transition after:absolute after:inset-0 hover:text-coral';
+                          return (
+                            <li
+                              key={show.id}
+                              className={`relative grid gap-2 px-4 py-3 transition md:grid-cols-[5.5rem_1fr_auto] md:items-center ${
+                                show.sourceUrl ? 'hover:bg-ink/5' : ''
+                              }`}
+                            >
+                              <p className="text-sm font-bold text-coral">
+                                {show.startsAt ? formatTime(show.startsAt.toISOString(), locale) : t.tba}
                               </p>
-                            </div>
-                            <div className="flex items-center gap-3 md:justify-end">
-                              <span className="text-sm font-medium text-ink">
-                                {formatListingPrice(show.priceCents, show.currency, t.free, show.priceText)}
-                              </span>
-                              {show.sourceUrl && (
-                                <a
-                                  href={show.sourceUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-sm font-semibold text-coral no-underline hover:underline"
-                                >
-                                  {t.tickets} →
-                                </a>
-                              )}
-                            </div>
-                          </li>
-                        ))}
+                              <div className="min-w-0">
+                                <h4 className="font-semibold leading-snug text-ink">
+                                  {show.sourceUrl ? (
+                                    external ? (
+                                      <a
+                                        href={show.sourceUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className={titleLinkClass}
+                                      >
+                                        {show.title}
+                                      </a>
+                                    ) : (
+                                      <Link href={show.sourceUrl} className={titleLinkClass}>
+                                        {show.title}
+                                      </Link>
+                                    )
+                                  ) : (
+                                    show.title
+                                  )}
+                                </h4>
+                                <p className="mt-0.5 text-sm text-muted">
+                                  {show.theater.name}
+                                  {show.venue ? ` · ${show.venue}` : ''}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-3 md:justify-end">
+                                <span className="text-sm font-medium text-ink">
+                                  {formatListingPrice(show.priceCents, show.currency, t.free, show.priceText)}
+                                </span>
+                                {show.sourceUrl && (
+                                  <span className="text-sm font-semibold text-coral">{t.tickets} →</span>
+                                )}
+                                {user && (
+                                  <LikeButton
+                                    targetKey={wireId}
+                                    initialLiked={likedKeys.has(wireId)}
+                                    likeLabel={t.like}
+                                    unlikeLabel={t.unlike}
+                                  />
+                                )}
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ol>
                     </div>
                   ))}

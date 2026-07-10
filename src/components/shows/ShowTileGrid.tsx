@@ -1,7 +1,9 @@
 import { Badge, CoverPlaceholder } from '@/components/ui';
+import { LikeButton } from '@/components/events/LikeButton';
 import type { Locale } from '@/i18n/config';
 import { eventCategoryLabel } from '@/i18n/homeNav';
 import { isEventCategory } from '@/lib/data/shows';
+import { listedShowWireId } from '@/lib/data/likes';
 import { formatListingPrice, formatTime } from '@/lib/format';
 import type { EventCategory } from '@/lib/taxonomy';
 
@@ -54,6 +56,12 @@ type ShowTileGridProps = {
   locale: Locale;
   shows: TileShow[];
   tbaLabel: string;
+  // Likes only render when the viewer is signed in. `likedKeys` marks which
+  // tiles start filled; omit both to hide the control (signed-out visitors).
+  canLike?: boolean;
+  likedKeys?: Set<string>;
+  likeLabel?: string;
+  unlikeLabel?: string;
 };
 
 function localeTag(locale: string): string {
@@ -75,7 +83,17 @@ function primaryCategory(show: TileShow): EventCategory {
   return show.categories.find(isEventCategory) ?? 'otros';
 }
 
-export function ShowTileGrid({ activeCategory, freeLabel, locale, shows, tbaLabel }: ShowTileGridProps) {
+export function ShowTileGrid({
+  activeCategory,
+  freeLabel,
+  locale,
+  shows,
+  tbaLabel,
+  canLike = false,
+  likedKeys,
+  likeLabel,
+  unlikeLabel,
+}: ShowTileGridProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {shows.map((show) => {
@@ -83,14 +101,32 @@ export function ShowTileGrid({ activeCategory, freeLabel, locale, shows, tbaLabe
         const href = show.sourceUrl ?? show.theater.website ?? '/calendario';
         const external = href.startsWith('http');
         const priceLabel = formatListingPrice(show.priceCents, show.currency, freeLabel, show.priceText);
+        const wireId = listedShowWireId(show);
 
         return (
-          <a
+          <div
             key={show.id}
-            href={href}
-            {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
-            className="group overflow-hidden rounded-lg bg-white text-[#1E0A3C] no-underline shadow-card ring-coral transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 dark:bg-card dark:text-white dark:shadow-none"
+            className="group relative overflow-hidden rounded-lg bg-white text-[#1E0A3C] shadow-card transition hover:-translate-y-0.5 dark:bg-card dark:text-white dark:shadow-none"
           >
+            {/* Stretched link makes the whole card clickable without wrapping
+                the like button in an anchor. The button (z-20) sits above it. */}
+            <a
+              href={href}
+              {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
+              aria-label={show.title}
+              className="absolute inset-0 z-10 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-coral"
+            />
+            {canLike && (
+              <LikeButton
+                targetKey={wireId}
+                initialLiked={likedKeys?.has(wireId) ?? false}
+                likeLabel={likeLabel ?? 'Like'}
+                unlikeLabel={unlikeLabel ?? 'Unlike'}
+                variant="overlay"
+                className="absolute right-2.5 top-2.5"
+              />
+            )}
+
             <div className="relative aspect-[16/9] overflow-hidden">
               <CoverPlaceholder seed={show.id} glyph={CATEGORY_GLYPHS[category]} />
               {show.imageUrl && (
@@ -127,7 +163,7 @@ export function ShowTileGrid({ activeCategory, freeLabel, locale, shows, tbaLabe
                 </p>
               )}
             </div>
-          </a>
+          </div>
         );
       })}
     </div>

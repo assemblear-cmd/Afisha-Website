@@ -73,6 +73,24 @@ function CalendarIcon({ className }: { className?: string }) {
   );
 }
 
+function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d={direction === 'left' ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'} />
+    </svg>
+  );
+}
+
 function pad(value: number): string {
   return String(value).padStart(2, '0');
 }
@@ -220,37 +238,39 @@ export function HeaderCalendarPicker({
         <div
           role="dialog"
           aria-label={label}
-          className="fixed left-3 right-3 top-16 z-50 overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/95 p-4 text-neutral-950 shadow-[0_28px_90px_rgba(30,10,60,0.28)] backdrop-blur-xl dark:border-white/10 dark:bg-neutral-950/95 dark:text-white dark:shadow-[0_28px_90px_rgba(0,0,0,0.55)] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:w-[min(calc(100vw-2rem),34rem)] sm:p-5"
+          className="fixed left-3 right-3 top-16 z-50 overflow-hidden rounded-[1.65rem] border border-black/[0.06] bg-white/95 p-5 text-neutral-950 shadow-[0_24px_70px_-18px_rgba(30,10,60,0.42)] backdrop-blur-2xl dark:border-white/10 dark:bg-neutral-900/95 dark:text-white dark:shadow-[0_28px_80px_-18px_rgba(0,0,0,0.75)] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:w-[21.5rem] sm:p-6"
         >
-          <div className="grid grid-cols-[2.75rem_1fr_2.75rem] items-center">
+          <div className="flex items-center justify-between">
             <button
               type="button"
               aria-label={copy.previousMonth}
               onClick={() => setMonthStart((month) => shiftMonth(month, -1))}
-              className="grid h-11 w-11 place-items-center rounded-full border border-transparent text-2xl font-bold text-neutral-300 transition hover:border-neutral-200 hover:bg-neutral-50 hover:text-neutral-950 dark:text-white/40 dark:hover:border-white/10 dark:hover:bg-white/10 dark:hover:text-white"
+              className="grid h-9 w-9 place-items-center rounded-full text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-950 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white"
             >
-              ←
+              <ChevronIcon direction="left" />
             </button>
-            <p className="text-center text-[1.55rem] font-extrabold leading-none tracking-normal sm:text-[1.7rem]">
+            <p className="text-center text-lg font-semibold tracking-tight sm:text-xl">
               {monthTitle(monthStart, locale)}
             </p>
             <button
               type="button"
               aria-label={copy.nextMonth}
               onClick={() => setMonthStart((month) => shiftMonth(month, 1))}
-              className="grid h-11 w-11 place-items-center rounded-full border border-transparent text-2xl font-bold text-neutral-950 transition hover:border-neutral-200 hover:bg-neutral-50 hover:text-coral dark:text-white dark:hover:border-white/10 dark:hover:bg-white/10"
+              className="grid h-9 w-9 place-items-center rounded-full text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-950 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white"
             >
-              →
+              <ChevronIcon direction="right" />
             </button>
           </div>
 
-          <div className="mt-7 grid grid-cols-7 rounded-2xl border border-neutral-200/70 bg-neutral-100/85 py-3 shadow-inner dark:border-white/10 dark:bg-white/10">
+          <div className="mt-5 grid grid-cols-7">
             {copy.weekdays.map((weekday, index) => (
               <span
                 key={weekday}
                 className={clsx(
-                  'text-center text-[0.95rem] font-extrabold text-neutral-500 dark:text-white/55',
-                  index >= 5 && 'text-coral dark:text-coral'
+                  'text-center text-[0.68rem] font-semibold uppercase tracking-[0.09em]',
+                  index >= 5
+                    ? 'text-coral/80'
+                    : 'text-neutral-400 dark:text-white/45'
                 )}
               >
                 {weekday}
@@ -258,9 +278,10 @@ export function HeaderCalendarPicker({
             ))}
           </div>
 
-          <div className="mt-5 grid grid-cols-7 gap-y-3 sm:gap-y-4">
+          <div className="mt-2.5 grid grid-cols-7 gap-y-1.5">
             {cells.map((cell) => {
               const selected = cell.key === selectedKey;
+              const today = cell.isToday && !selected;
 
               return (
                 <button
@@ -273,14 +294,15 @@ export function HeaderCalendarPicker({
                     if (!cell.inMonth) setMonthStart(monthStartFromKey(cell.key));
                   }}
                   className={clsx(
-                    'mx-auto grid h-11 w-11 place-items-center rounded-2xl text-[1.45rem] font-extrabold leading-none transition focus:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 sm:h-12 sm:w-12 sm:text-[1.55rem]',
+                    'relative mx-auto grid h-10 w-10 place-items-center rounded-full text-[0.95rem] font-medium leading-none tabular-nums transition focus:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900',
+                    'after:absolute after:bottom-1.5 after:h-1 after:w-1 after:rounded-full after:transition-colors',
                     selected
-                      ? 'bg-coral text-white shadow-[0_14px_28px_rgba(226,27,45,0.28)]'
-                      : cell.inMonth
-                        ? cell.isToday
-                          ? 'text-coral ring-1 ring-coral/20 hover:bg-coral/10 dark:hover:bg-coral/20'
-                          : 'text-neutral-950 hover:bg-neutral-100 dark:text-white dark:hover:bg-white/10'
-                        : 'text-neutral-300 hover:bg-neutral-100 dark:text-white/25 dark:hover:bg-white/10'
+                      ? 'bg-coral font-semibold text-white shadow-[0_10px_22px_-6px_rgba(226,27,45,0.6)] after:bg-transparent'
+                      : today
+                        ? 'font-semibold text-coral hover:bg-coral/10 after:bg-coral dark:hover:bg-coral/20'
+                        : cell.inMonth
+                          ? 'text-neutral-800 hover:bg-neutral-100 after:bg-transparent dark:text-white/90 dark:hover:bg-white/10'
+                          : 'text-neutral-300 hover:bg-neutral-100 after:bg-transparent dark:text-white/25 dark:hover:bg-white/5'
                   )}
                 >
                   {cell.day}
@@ -292,7 +314,7 @@ export function HeaderCalendarPicker({
           <button
             type="button"
             onClick={applyDate}
-            className="mt-7 h-14 w-full rounded-2xl bg-[#1E0A3C] text-lg font-extrabold text-white shadow-[0_14px_32px_rgba(30,10,60,0.25)] transition hover:bg-coral focus:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2 dark:bg-white dark:text-neutral-950 dark:shadow-none dark:hover:bg-coral dark:hover:text-white dark:focus-visible:ring-offset-neutral-950"
+            className="mt-6 h-12 w-full rounded-2xl bg-neutral-950 text-[0.95rem] font-semibold tracking-tight text-white shadow-[0_12px_30px_-12px_rgba(30,10,60,0.55)] transition hover:bg-coral focus:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2 dark:bg-white dark:text-neutral-950 dark:shadow-none dark:hover:bg-coral dark:hover:text-white dark:focus-visible:ring-offset-neutral-900"
           >
             {copy.apply}
           </button>

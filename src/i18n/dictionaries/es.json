@@ -54,7 +54,9 @@
     "empty": "No hay eventos para esta categoría por ahora.",
     "free": "Gratis",
     "tickets": "Entradas",
-    "tba": "Hora por confirmar"
+    "tba": "Hora por confirmar",
+    "like": "Me gusta",
+    "unlike": "Quitar me gusta"
   },
   "weekend": {
     "metaTitle": "Eventos este fin de semana en Santiago — Afisha",

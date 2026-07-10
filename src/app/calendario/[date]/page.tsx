@@ -7,7 +7,9 @@ import { ShowTileGrid } from '@/components/shows/ShowTileGrid';
 import { getDictionary } from '@/i18n/config';
 import { getLocale } from '@/i18n/getLocale';
 import { eventCategoryLabel } from '@/i18n/homeNav';
+import { getCurrentUser } from '@/lib/auth';
 import { getShowsForDate, isEventCategory, type DateShow } from '@/lib/data/shows';
+import { getLikedKeys } from '@/lib/data/likes';
 import { EVENT_CATEGORIES, type EventCategory } from '@/lib/taxonomy';
 import { addDaysToKey, isDateKey } from '@/lib/weekend';
 
@@ -94,7 +96,8 @@ export default async function DatePage({ params, searchParams }: DatePageProps) 
   if (!isDateKey(params.date)) notFound();
 
   const locale = getLocale();
-  const t = getDictionary(locale).datePage;
+  const dict = getDictionary(locale);
+  const t = dict.datePage;
   const activeCategory = isEventCategory(searchParams.category) ? searchParams.category : undefined;
   const allShows = await getShowsForDate(params.date);
   const shows = activeCategory
@@ -103,6 +106,8 @@ export default async function DatePage({ params, searchParams }: DatePageProps) 
   const counts = categoryCounts(allShows);
   const title = dateHeading(params.date, locale);
   const days = dateStripDays(params.date, locale);
+  const user = await getCurrentUser();
+  const likedKeys = user ? await getLikedKeys(user.id) : undefined;
 
   return (
     <main className="min-h-screen bg-surface dark:bg-canvas">
@@ -177,6 +182,10 @@ export default async function DatePage({ params, searchParams }: DatePageProps) 
             locale={locale}
             shows={shows}
             tbaLabel={t.tba}
+            canLike={!!user}
+            likedKeys={likedKeys}
+            likeLabel={dict.calendar.like}
+            unlikeLabel={dict.calendar.unlike}
           />
         )}
       </Container>

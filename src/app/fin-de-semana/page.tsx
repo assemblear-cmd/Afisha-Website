@@ -5,7 +5,9 @@ import { ShowTileGrid } from '@/components/shows/ShowTileGrid';
 import { getDictionary } from '@/i18n/config';
 import { getLocale } from '@/i18n/getLocale';
 import { eventCategoryLabel } from '@/i18n/homeNav';
+import { getCurrentUser } from '@/lib/auth';
 import { getWeekendShows, isEventCategory, type WeekendShow } from '@/lib/data/shows';
+import { getLikedKeys } from '@/lib/data/likes';
 import { EVENT_CATEGORIES, type EventCategory } from '@/lib/taxonomy';
 import { weekendWindow } from '@/lib/weekend';
 
@@ -60,7 +62,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function WeekendPage({ searchParams }: WeekendPageProps) {
   const locale = getLocale();
-  const t = getDictionary(locale).weekend;
+  const dict = getDictionary(locale);
+  const t = dict.weekend;
   const activeCategory = isEventCategory(searchParams.category) ? searchParams.category : undefined;
   const weekend = weekendWindow();
   const allShows = await getWeekendShows();
@@ -68,6 +71,8 @@ export default async function WeekendPage({ searchParams }: WeekendPageProps) {
     ? allShows.filter((show) => show.categories.includes(activeCategory))
     : allShows;
   const counts = categoryCounts(allShows);
+  const user = await getCurrentUser();
+  const likedKeys = user ? await getLikedKeys(user.id) : undefined;
 
   return (
     <main className="min-h-screen bg-surface">
@@ -136,6 +141,10 @@ export default async function WeekendPage({ searchParams }: WeekendPageProps) {
             locale={locale}
             shows={shows}
             tbaLabel={t.tba}
+            canLike={!!user}
+            likedKeys={likedKeys}
+            likeLabel={dict.calendar.like}
+            unlikeLabel={dict.calendar.unlike}
           />
         )}
       </Container>

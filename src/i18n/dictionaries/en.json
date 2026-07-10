@@ -54,7 +54,9 @@
     "empty": "No events in this category yet.",
     "free": "Free",
     "tickets": "Tickets",
-    "tba": "Time TBA"
+    "tba": "Time TBA",
+    "like": "Like",
+    "unlike": "Unlike"
   },
   "weekend": {
     "metaTitle": "This Weekend in Santiago — Afisha",
