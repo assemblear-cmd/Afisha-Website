@@ -8,7 +8,8 @@ import { coverImageSchema } from '@/lib/cover-image';
 export const organizerEventSchema = z.object({
   title: z.string().min(3).max(140),
   shortDescription: z.string().max(280).optional().or(z.literal('')),
-  description: z.string().min(10),
+  // Full description is optional; the DB column is non-null so default to ''.
+  description: z.string().optional().default(''),
   category: z.string().min(1),
   venue: z.string().min(1),
   address: z.string().min(1),

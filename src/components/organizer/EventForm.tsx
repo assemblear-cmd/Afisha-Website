@@ -131,13 +131,11 @@ export function EventForm(props: EventFormProps) {
         />
       </Field>
 
-      <Field label="Full description">
+      <Field label="Full description (optional)">
         <Textarea
           value={values.description}
           onChange={(e) => set('description', e.target.value)}
           rows={5}
-          required
-          minLength={10}
         />
       </Field>
 
