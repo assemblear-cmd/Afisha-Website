@@ -1,12 +1,87 @@
+<!-- DondeGO launcher icon: deep burgundy theater-curtain disc (vertical fold
+     shading) with a white calligraphic "D" monogram. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="48dp"
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
+
+    <!-- Curtain base: burgundy, lit from the top like a stage curtain. -->
+    <path android:pathData="M24,4a20,20 0,1 0,0.1 0z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startColor="#8C1528"
+                android:endColor="#4A0812"
+                android:startX="24"
+                android:startY="4"
+                android:endX="24"
+                android:endY="44"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+
+    <!-- Curtain folds, clipped to the disc: dark shadows + soft highlights. -->
+    <group>
+        <clip-path android:pathData="M24,4a20,20 0,1 0,0.1 0z" />
+        <path
+            android:fillColor="#3D060F"
+            android:fillAlpha="0.40"
+            android:pathData="M9,0 C8,16 10,32 9,48 L12,48 C13,32 11,16 12,0 Z" />
+        <path
+            android:fillColor="#A63049"
+            android:fillAlpha="0.26"
+            android:pathData="M13.5,0 C13,16 14,32 13.5,48 L15.5,48 C16,32 15,16 15.5,0 Z" />
+        <path
+            android:fillColor="#3D060F"
+            android:fillAlpha="0.36"
+            android:pathData="M19,0 C18,16 20,32 19,48 L21.5,48 C22.5,32 20.5,16 21.5,0 Z" />
+        <path
+            android:fillColor="#A63049"
+            android:fillAlpha="0.22"
+            android:pathData="M25,0 C24.5,16 25.5,32 25,48 L27,48 C27.5,32 26.5,16 27,0 Z" />
+        <path
+            android:fillColor="#3D060F"
+            android:fillAlpha="0.40"
+            android:pathData="M30.5,0 C29.5,16 31.5,32 30.5,48 L33,48 C34,32 32,16 33,0 Z" />
+        <path
+            android:fillColor="#A63049"
+            android:fillAlpha="0.26"
+            android:pathData="M36,0 C35.5,16 36.5,32 36,48 L38,48 C38.5,32 37.5,16 38,0 Z" />
+        <path
+            android:fillColor="#3D060F"
+            android:fillAlpha="0.36"
+            android:pathData="M41,0 C40.5,16 41.5,32 41,48 L43,48 C43.5,32 42.5,16 43,0 Z" />
+    </group>
+
+    <!-- Monogram "D": calligraphic stem + bowl with flourish curls. -->
     <path
-        android:fillColor="#E21B2D"
-        android:pathData="M24,4a20,20 0,1 0,0.1 0z" />
+        android:pathData="M17.5,12 C16.5,20 16.5,28 17.5,36"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.1"
+        android:strokeLineCap="round" />
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M15,13h9c6.1,0 10,4.1 10,10.8S30.1,35 24,35h-9zM21,19v10h2.6c2.8,0 4.5,-1.9 4.5,-5.1S26.4,19 23.6,19z" />
+        android:pathData="M17.5,12 C28.5,11 35.5,16 35.5,24 C35.5,32 28.5,37 17.5,36"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.1"
+        android:strokeLineCap="round" />
+    <!-- Inner engraved echo of the bowl. -->
+    <path
+        android:pathData="M20.5,16.6 C27.5,16.2 30.8,19.8 30.8,24 C30.8,28.2 27.5,31.8 20.5,31.4"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.1"
+        android:strokeAlpha="0.85"
+        android:strokeLineCap="round" />
+    <!-- Top flourish curl. -->
+    <path
+        android:pathData="M17.5,12 C14,9.4 10,10.4 9.4,13.4 C9,15.9 11.4,17.4 13.2,15.9"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round" />
+    <!-- Bottom flourish curl. -->
+    <path
+        android:pathData="M17.5,36 C14,38.6 10,37.6 9.4,34.6 C9,32.1 11.4,30.6 13.2,32.1"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round" />
 </vector>

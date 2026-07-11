@@ -1,7 +1,10 @@
 <resources>
     <string name="app_name">DondeGO</string>
     <string name="nav_home">Home</string>
-    <string name="nav_tickets">My tickets</string>
+    <string name="nav_discover">Discover</string>
+    <string name="nav_saved">Saved</string>
+    <string name="nav_tickets">Tickets</string>
+    <string name="nav_account">Account</string>
     <string name="nav_organizer">Organizer</string>
     <string name="nav_scanner">Scanner</string>
     <string name="nav_admin">Admin</string>
@@ -10,4 +13,34 @@
     <string name="language_menu">Language</string>
     <string name="nav_events">Events</string>
     <string name="menu_more">Menu</string>
+
+    <string name="account_title">Account</string>
+    <string name="account_following">%1$d Following</string>
+    <string name="account_guest_title">Welcome to DondeGO</string>
+    <string name="account_guest_body">Log in to save events, buy tickets and follow your favorite venues.</string>
+    <string name="account_banner_title">Tell us what you love</string>
+    <string name="account_banner_body">Get event recommendations based on your interests</string>
+    <string name="account_banner_cta">Add interests</string>
+    <string name="account_preferences">Preferences</string>
+    <string name="account_interests">Interests</string>
+    <string name="account_venues">Venues you follow</string>
+    <string name="account_your_events">Your events</string>
+
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_save">Save</string>
+    <string name="onboarding_retry">Retry</string>
+    <string name="onboarding_error">Could not load the options. Check your connection.</string>
+    <string name="onboarding_categories_title">What are you into?</string>
+    <string name="onboarding_categories_subtitle">Pick the event categories you love. We\'ll put them first in your feed.</string>
+    <string name="onboarding_venues_title">We think you\'ll love these venues</string>
+    <string name="onboarding_venues_subtitle">Follow them to see their events first in your feed. You can change this anytime.</string>
+    <string name="onboarding_venues_popular">Popular in Santiago</string>
+    <string name="onboarding_follow">Follow</string>
+    <string name="onboarding_following">Following</string>
+    <plurals name="onboarding_upcoming_events">
+        <item quantity="one">%1$d upcoming event</item>
+        <item quantity="other">%1$d upcoming events</item>
+    </plurals>
 </resources>

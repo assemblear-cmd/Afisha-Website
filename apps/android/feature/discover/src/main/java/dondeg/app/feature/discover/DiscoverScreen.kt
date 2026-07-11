@@ -8,35 +8,29 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items as gridItems
-import androidx.compose.foundation.lazy.items as rowItems
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -62,7 +56,7 @@ import dondeg.app.core.common.ApiResult
 import dondeg.app.core.data.DiscoveryRepository
 import dondeg.app.core.data.EventsRepository
 import dondeg.app.core.designsystem.DondeGoCoral
-import dondeg.app.core.designsystem.DondeGoInk
+import dondeg.app.core.designsystem.DondeGoPillBlack
 import dondeg.app.core.designsystem.DondeGoSuccess
 import dondeg.app.core.designsystem.categoryLabel
 import dondeg.app.core.designsystem.formatEventDateTime
@@ -78,6 +72,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/**
+ * Home tab, reference-design style: location chip, pill search field,
+ * category chips, and a personalized vertical event list (the server puts
+ * followed venues/categories first for signed-in users).
+ *
+ * `refreshKey` changes on sign-in/out and after onboarding saves, recreating
+ * the view model so the feed reloads with the new personalized order.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiscoverScreen(
@@ -86,8 +88,9 @@ fun DiscoverScreen(
     likedKeys: Set<String>,
     onToggleLike: (String) -> Unit,
     onOpenEvent: (EventKind, String) -> Unit,
+    refreshKey: String = "",
 ) {
-    val viewModel = viewModel {
+    val viewModel = viewModel(key = "discover-$refreshKey") {
         DiscoverViewModel(discoveryRepository, eventsRepository)
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -197,57 +200,38 @@ private fun DiscoverContent(
     onCategorySelected: (String?) -> Unit,
     onOpenEvent: (EventKind, String) -> Unit,
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 164.dp),
+    LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, top = 14.dp, end = 16.dp, bottom = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        item(span = { GridItemSpan(maxLineSpan) }) {
+        item {
             DiscoverHeader(
                 query = state.query,
                 onQueryChange = onQueryChange,
             )
         }
 
-        item(span = { GridItemSpan(maxLineSpan) }) {
+        item {
             CategoryMenu(
                 categories = feed.categories,
                 selectedCategory = state.category,
-                total = feed.total,
                 onCategorySelected = onCategorySelected,
             )
         }
 
-        if (feed.hero.isNotEmpty() && !state.hasFilters) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                SectionHeader(
-                    title = stringResource(R.string.discover_popular_title),
-                    body = stringResource(R.string.discover_popular_body),
-                )
-            }
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                HeroRail(events = feed.hero.take(7), onOpenEvent = onOpenEvent)
-            }
-        }
-
-        item(span = { GridItemSpan(maxLineSpan) }) {
+        item {
             SectionHeader(
-                title = stringResource(R.string.discover_upcoming_title),
-                body = if (state.category == null) {
-                    stringResource(R.string.discover_upcoming_body_all)
+                title = if (state.category == null) {
+                    stringResource(R.string.discover_upcoming_title)
                 } else {
-                    stringResource(
-                        R.string.discover_upcoming_body_category,
-                        categoryLabel(state.category),
-                    )
+                    categoryLabel(state.category)
                 },
             )
         }
 
         when {
-            state.filtering -> item(span = { GridItemSpan(maxLineSpan) }) {
+            state.filtering -> item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -257,20 +241,20 @@ private fun DiscoverContent(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
-            state.listingError != null -> item(span = { GridItemSpan(maxLineSpan) }) {
+            state.listingError != null -> item {
                 MessageState(
                     title = stringResource(R.string.discover_error),
                     body = state.listingError,
                 )
             }
-            state.listing.isEmpty() -> item(span = { GridItemSpan(maxLineSpan) }) {
+            state.listing.isEmpty() -> item {
                 MessageState(
                     title = stringResource(R.string.discover_empty),
                     body = stringResource(R.string.discover_empty_body),
                 )
             }
-            else -> gridItems(items = state.listing, key = { it.id }) { event ->
-                EventTile(
+            else -> items(items = state.listing, key = { it.id }) { event ->
+                EventRow(
                     event = event,
                     liked = likedKeys.contains(event.id),
                     onToggleLike = { onToggleLike(event.id) },
@@ -286,28 +270,30 @@ private fun DiscoverHeader(
     query: String,
     onQueryChange: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            shape = RoundedCornerShape(8.dp),
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Location chip: pin + city + chevron, like the reference design.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Place,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    text = stringResource(R.string.discover_city),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+            Icon(
+                imageVector = Icons.Outlined.Place,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = stringResource(R.string.discover_city),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Bold,
+            )
+            Icon(
+                imageVector = Icons.Outlined.ExpandMore,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onBackground,
+            )
         }
 
         OutlinedTextField(
@@ -315,9 +301,22 @@ private fun DiscoverHeader(
             onValueChange = onQueryChange,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.outline,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            ),
             leadingIcon = {
                 Icon(Icons.Outlined.Search, contentDescription = null)
+            },
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Outlined.Tune,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             },
             placeholder = { Text(stringResource(R.string.discover_search_hint)) },
         )
@@ -328,7 +327,6 @@ private fun DiscoverHeader(
 private fun CategoryMenu(
     categories: List<CategoryCount>,
     selectedCategory: String?,
-    total: Int,
     onCategorySelected: (String?) -> Unit,
 ) {
     // Categories arrive count-ordered from the backend (count desc, taxonomy
@@ -340,15 +338,13 @@ private fun CategoryMenu(
         item {
             CategoryChip(
                 label = stringResource(R.string.discover_all_categories),
-                count = total,
                 selected = selectedCategory == null,
                 onClick = { onCategorySelected(null) },
             )
         }
-        rowItems(categories, key = { it.slug }) { category ->
+        items(categories, key = { it.slug }) { category ->
             CategoryChip(
                 label = categoryLabel(category.slug),
-                count = category.count,
                 selected = selectedCategory == category.slug,
                 onClick = {
                     onCategorySelected(
@@ -363,188 +359,88 @@ private fun CategoryMenu(
 @Composable
 private fun CategoryChip(
     label: String,
-    count: Int,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    FilterChip(
-        selected = selected,
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = if (selected) DondeGoPillBlack else MaterialTheme.colorScheme.surface,
+        contentColor = if (selected) Color.White else MaterialTheme.colorScheme.onBackground,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = if (selected) DondeGoPillBlack else MaterialTheme.colorScheme.outline,
+        ),
         onClick = onClick,
-        label = {
-            Text(
-                text = "$label $count",
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        leadingIcon = if (selected) {
-            {
-                Icon(
-                    imageVector = Icons.Outlined.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        } else {
-            null
-        },
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onBackground,
+        fontWeight = FontWeight.Bold,
     )
 }
 
+/**
+ * Reference-design list row: square poster left, then title / date · venue /
+ * price, heart on the right. Shared by the home feed, Saved and Your events.
+ */
 @Composable
-private fun SectionHeader(title: String, body: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun HeroRail(
-    events: List<EventSummary>,
-    onOpenEvent: (EventKind, String) -> Unit,
-) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(end = 8.dp),
-    ) {
-        rowItems(events, key = { it.id }) { event ->
-            HeroTile(event = event, onClick = { onOpenEvent(event.kind, event.id) })
-        }
-    }
-}
-
-@Composable
-private fun HeroTile(event: EventSummary, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .width(264.dp)
-            .aspectRatio(16f / 10f)
-            .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick),
-    ) {
-        EventImage(event = event)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.82f)),
-                    ),
-                ),
-        )
-        CategoryBadge(
-            label = categoryLabel(event.categories.firstOrNull()),
-            light = true,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(10.dp),
-        )
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = formatEventDateTime(event.startsAt)
-                    ?: stringResource(R.string.discover_tba),
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.9f),
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = event.title,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = event.venueName ?: stringResource(R.string.discover_unknown_venue),
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.8f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-internal fun EventTile(
+internal fun EventRow(
     event: EventSummary,
     liked: Boolean,
     onToggleLike: () -> Unit,
     onClick: () -> Unit,
 ) {
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(16f / 10f),
+                .size(92.dp)
+                .clip(RoundedCornerShape(10.dp)),
         ) {
             EventImage(event = event)
-            CategoryBadge(
-                label = categoryLabel(event.categories.firstOrNull()),
-                light = false,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp),
-            )
-            IconButton(
-                onClick = onToggleLike,
-                modifier = Modifier.align(Alignment.TopEnd),
-            ) {
-                Icon(
-                    imageVector = if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = stringResource(
-                        if (liked) R.string.discover_unlike else R.string.discover_like,
-                    ),
-                    tint = if (liked) DondeGoCoral else Color.White,
-                )
-            }
         }
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = 2.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Text(
-                text = formatEventDateTime(event.startsAt)
-                    ?: stringResource(R.string.discover_tba),
-                style = MaterialTheme.typography.labelMedium,
-                color = DondeGoCoral,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
                 text = event.title,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = event.venueName ?: stringResource(R.string.discover_unknown_venue),
+                text = listOfNotNull(
+                    formatEventDateTime(event.startsAt) ?: stringResource(R.string.discover_tba),
+                    event.venueName ?: stringResource(R.string.discover_unknown_venue),
+                ).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
@@ -553,14 +449,14 @@ internal fun EventTile(
                 color = if (event.minPriceMinor == 0L) DondeGoSuccess else MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.SemiBold,
             )
-            Text(
-                text = if (event.kind == EventKind.Native) {
-                    stringResource(R.string.discover_badge_native)
-                } else {
-                    stringResource(R.string.discover_badge_external)
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = if (event.kind == EventKind.Native) DondeGoCoral else MaterialTheme.colorScheme.onSurfaceVariant,
+        }
+        IconButton(onClick = onToggleLike) {
+            Icon(
+                imageVector = if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                contentDescription = stringResource(
+                    if (liked) R.string.discover_unlike else R.string.discover_like,
+                ),
+                tint = if (liked) DondeGoCoral else MaterialTheme.colorScheme.onBackground,
             )
         }
     }
@@ -580,29 +476,6 @@ private fun EventImage(event: EventSummary) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(placeholderBrush(event.id)),
-        )
-    }
-}
-
-@Composable
-private fun CategoryBadge(
-    label: String,
-    light: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(6.dp),
-        color = if (light) Color.White.copy(alpha = 0.92f) else MaterialTheme.colorScheme.primaryContainer,
-        contentColor = if (light) DondeGoInk else MaterialTheme.colorScheme.onPrimaryContainer,
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
         )
     }
 }

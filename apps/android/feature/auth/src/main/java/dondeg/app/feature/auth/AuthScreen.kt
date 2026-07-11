@@ -49,13 +49,15 @@ import kotlinx.coroutines.launch
 
 /**
  * Login/registration against the mobile auth endpoints. On success the token
- * is stored in encrypted storage by the repository and the screen pops back.
+ * is stored in encrypted storage by the repository. `onAuthenticated(true)`
+ * means a brand-new account was just registered, so the host can launch the
+ * onboarding questions; `false` is a plain sign-in.
  */
 @Composable
 fun AuthScreen(
     repository: AuthRepository,
     googleWebClientId: String,
-    onAuthenticated: () -> Unit,
+    onAuthenticated: (registeredNewAccount: Boolean) -> Unit,
 ) {
     val viewModel = viewModel { AuthViewModel(repository) }
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -63,7 +65,7 @@ fun AuthScreen(
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(state.done) {
-        if (state.done) onAuthenticated()
+        if (state.done) onAuthenticated(state.registered)
     }
 
     val fillFieldsError = stringResource(R.string.auth_error_fill_fields)
@@ -269,7 +271,7 @@ internal class AuthViewModel(
             } else {
                 repository.login(email = snapshot.email, password = snapshot.password)
             }
-            applyResult(result)
+            applyResult(result, registered = snapshot.registerMode)
         }
     }
 
@@ -283,13 +285,15 @@ internal class AuthViewModel(
     fun loginWithGoogle(idToken: String) {
         viewModelScope.launch {
             _state.update { it.copy(loading = true, error = null) }
-            applyResult(repository.loginWithGoogle(idToken))
+            applyResult(repository.loginWithGoogle(idToken), registered = false)
         }
     }
 
-    private fun applyResult(result: ApiResult<*>) {
+    private fun applyResult(result: ApiResult<*>, registered: Boolean) {
         when (result) {
-            is ApiResult.Success -> _state.update { it.copy(loading = false, done = true) }
+            is ApiResult.Success -> _state.update {
+                it.copy(loading = false, done = true, registered = registered)
+            }
             is ApiResult.HttpError -> _state.update {
                 it.copy(loading = false, error = result.message)
             }

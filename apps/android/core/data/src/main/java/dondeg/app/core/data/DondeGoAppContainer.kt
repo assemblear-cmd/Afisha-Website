@@ -27,6 +27,7 @@ class DondeGoAppContainer(
     val ticketsRepository = TicketsRepository(networkModule.api)
     val scannerRepository = ScannerRepository(networkModule.api)
     val likesRepository = LikesRepository(networkModule.api, sessionRepository)
+    val preferencesRepository = PreferencesRepository(networkModule.api)
 
     /** Absolute web URL on the API host (native event pages / web checkout). */
     fun webUrl(path: String): String = apiBaseUrl.trimEnd('/') + path

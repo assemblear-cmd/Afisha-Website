@@ -35,7 +35,10 @@ type MosaicTile =
   | { kind: 'show'; category: EventCategory; show: ListedShow }
   | { kind: 'category'; category: EventCategory };
 
-function buildCategoryMosaic(items: ListedShow[]): MosaicTile[] {
+function buildCategoryMosaic(
+  items: ListedShow[],
+  preferredCategories: string[] = []
+): MosaicTile[] {
   const slots = FEATURED_EVENT_CATEGORIES.length;
 
   const counts = new Map<EventCategory, number>();
@@ -47,11 +50,17 @@ function buildCategoryMosaic(items: ListedShow[]): MosaicTile[] {
     }
   }
 
-  // Only categories that actually have events, busiest first (stable sort
-  // keeps the canonical order for ties).
+  // Only categories that actually have events. The visitor's onboarding picks
+  // lead, then busiest first (stable sort keeps the canonical order for ties).
+  const preferred = new Set(preferredCategories);
   const ordered = [...FEATURED_EVENT_CATEGORIES]
     .filter((category) => (counts.get(category) ?? 0) > 0)
-    .sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0));
+    .sort((a, b) => {
+      const aPreferred = preferred.has(a) ? 1 : 0;
+      const bPreferred = preferred.has(b) ? 1 : 0;
+      if (aPreferred !== bPreferred) return bPreferred - aPreferred;
+      return (counts.get(b) ?? 0) - (counts.get(a) ?? 0);
+    });
 
   const used = new Set<string>();
   const tiles: MosaicTile[] = [];
@@ -83,15 +92,18 @@ function buildCategoryMosaic(items: ListedShow[]): MosaicTile[] {
 export function Mosaic({
   items,
   promoted = [],
+  preferredCategories,
 }: {
   items: ListedShow[];
   // Paid tile placements keyed by mosaic position (1..7); slots without an
   // active placement fall back to the normal category/show tile.
   promoted?: PromotedTile[];
+  // Signed-in visitor's onboarding picks: these categories lead the grid.
+  preferredCategories?: string[];
 }) {
   const locale = getLocale();
   const nav = getHomeNav(locale);
-  const tiles = buildCategoryMosaic(items);
+  const tiles = buildCategoryMosaic(items, preferredCategories ?? []);
   const promotedByPosition = new Map(promoted.map((tile) => [tile.position, tile]));
   if (tiles.length === 0) return null;
 
