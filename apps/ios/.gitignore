@@ -1,0 +1,9 @@
+# Xcode / build artifacts
+build/
+DerivedData/
+*.xcarchive
+*.ipa
+
+# Per-user Xcode state (not shared)
+xcuserdata/
+*.xcuserstate

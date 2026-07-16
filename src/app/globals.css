@@ -11,9 +11,9 @@
     --color-ink: 30 10 60; /* #1E0A3C */
     --color-body: 57 54 79; /* #39364F */
     --color-muted: 111 114 135; /* #6F7287 */
-    --color-surface: 248 247 250; /* #F8F7FA */
-    --color-card: 255 255 255; /* #FFFFFF */
-    --color-canvas: 255 255 255; /* page background */
+    --color-surface: 247 242 234; /* #F7F2EA */
+    --color-card: 255 254 251; /* #FFFEFB */
+    --color-canvas: 252 248 240; /* soft warm page background */
     color-scheme: light;
   }
 

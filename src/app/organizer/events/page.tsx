@@ -22,7 +22,7 @@ export default async function OrganizerEventsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-ink">Your events</h1>
+        <h1 className="text-2xl font-bold text-ink">My events</h1>
         <LinkButton href="/organizer/events/new" variant="primary" size="sm">
           Create event
         </LinkButton>

@@ -1,5 +1,6 @@
 package dondeg.app.feature.discover
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,33 +25,38 @@ import androidx.compose.foundation.lazy.items as rowItems
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Place
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -67,7 +73,6 @@ import dondeg.app.core.designsystem.DondeGoSuccess
 import dondeg.app.core.designsystem.categoryLabel
 import dondeg.app.core.designsystem.formatEventDateTime
 import dondeg.app.core.designsystem.priceLabel
-import dondeg.app.core.model.CategoryCount
 import dondeg.app.core.model.EventKind
 import dondeg.app.core.model.EventSummary
 import dondeg.app.core.model.HomeFeed
@@ -86,11 +91,19 @@ fun DiscoverScreen(
     likedKeys: Set<String>,
     onToggleLike: (String) -> Unit,
     onOpenEvent: (EventKind, String) -> Unit,
+    requestedQuery: String = "",
+    queryRequestVersion: Int = 0,
 ) {
     val viewModel = viewModel {
         DiscoverViewModel(discoveryRepository, eventsRepository)
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(queryRequestVersion) {
+        if (queryRequestVersion > 0) {
+            viewModel.onQuery(requestedQuery)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -113,9 +126,8 @@ fun DiscoverScreen(
                     state = state,
                     likedKeys = likedKeys,
                     onToggleLike = onToggleLike,
-                    onQueryChange = viewModel::onQuery,
-                    onCategorySelected = viewModel::onCategory,
                     onOpenEvent = onOpenEvent,
+                    onSelectCategory = viewModel::onCategory,
                 )
             }
         }
@@ -193,10 +205,19 @@ private fun DiscoverContent(
     state: DiscoverUiState,
     likedKeys: Set<String>,
     onToggleLike: (String) -> Unit,
-    onQueryChange: (String) -> Unit,
-    onCategorySelected: (String?) -> Unit,
     onOpenEvent: (EventKind, String) -> Unit,
+    onSelectCategory: (String?) -> Unit,
 ) {
+    val heroEvents = remember(feed.hero, state.listing) {
+        uniquePrimaryCategoryFirst(feed.hero.ifEmpty { state.listing }).take(7)
+    }
+    val listing = remember(state.listing, state.hasFilters) {
+        if (state.hasFilters) state.listing else uniquePrimaryCategoryFirst(state.listing)
+    }
+    val categorySlugs = remember(feed.categories, state.listing) {
+        visibleCategorySlugs(feed, state.listing)
+    }
+
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 164.dp),
         modifier = Modifier.fillMaxSize(),
@@ -204,45 +225,17 @@ private fun DiscoverContent(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            DiscoverHeader(
-                query = state.query,
-                onQueryChange = onQueryChange,
-            )
-        }
-
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            CategoryMenu(
-                categories = feed.categories,
-                selectedCategory = state.category,
-                total = feed.total,
-                onCategorySelected = onCategorySelected,
-            )
-        }
-
-        if (feed.hero.isNotEmpty() && !state.hasFilters) {
+        if (heroEvents.isNotEmpty() && !state.hasFilters) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                SectionHeader(
-                    title = stringResource(R.string.discover_popular_title),
-                    body = stringResource(R.string.discover_popular_body),
-                )
-            }
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                HeroRail(events = feed.hero.take(7), onOpenEvent = onOpenEvent)
+                HeroRail(events = heroEvents, onOpenEvent = onOpenEvent)
             }
         }
 
         item(span = { GridItemSpan(maxLineSpan) }) {
-            SectionHeader(
-                title = stringResource(R.string.discover_upcoming_title),
-                body = if (state.category == null) {
-                    stringResource(R.string.discover_upcoming_body_all)
-                } else {
-                    stringResource(
-                        R.string.discover_upcoming_body_category,
-                        categoryLabel(state.category),
-                    )
-                },
+            CategoryLogoRail(
+                slugs = categorySlugs,
+                selectedSlug = state.category,
+                onSelectCategory = onSelectCategory,
             )
         }
 
@@ -269,7 +262,7 @@ private fun DiscoverContent(
                     body = stringResource(R.string.discover_empty_body),
                 )
             }
-            else -> gridItems(items = state.listing, key = { it.id }) { event ->
+            else -> gridItems(items = listing, key = { it.id }) { event ->
                 EventTile(
                     event = event,
                     liked = likedKeys.contains(event.id),
@@ -282,78 +275,23 @@ private fun DiscoverContent(
 }
 
 @Composable
-private fun DiscoverHeader(
-    query: String,
-    onQueryChange: (String) -> Unit,
+private fun CategoryLogoRail(
+    slugs: List<String>,
+    selectedSlug: String?,
+    onSelectCategory: (String?) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            shape = RoundedCornerShape(8.dp),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Place,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    text = stringResource(R.string.discover_city),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
+    if (slugs.isEmpty()) return
 
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            shape = RoundedCornerShape(8.dp),
-            leadingIcon = {
-                Icon(Icons.Outlined.Search, contentDescription = null)
-            },
-            placeholder = { Text(stringResource(R.string.discover_search_hint)) },
-        )
-    }
-}
-
-@Composable
-private fun CategoryMenu(
-    categories: List<CategoryCount>,
-    selectedCategory: String?,
-    total: Int,
-    onCategorySelected: (String?) -> Unit,
-) {
-    // Categories arrive count-ordered from the backend (count desc, taxonomy
-    // tie-break) and are rendered in server order — never re-sorted here.
     LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(end = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(18.dp),
+        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp),
     ) {
-        item {
-            CategoryChip(
-                label = stringResource(R.string.discover_all_categories),
-                count = total,
-                selected = selectedCategory == null,
-                onClick = { onCategorySelected(null) },
-            )
-        }
-        rowItems(categories, key = { it.slug }) { category ->
-            CategoryChip(
-                label = categoryLabel(category.slug),
-                count = category.count,
-                selected = selectedCategory == category.slug,
+        rowItems(slugs, key = { it }) { slug ->
+            CategoryLogoButton(
+                slug = slug,
+                selected = selectedSlug == slug,
                 onClick = {
-                    onCategorySelected(
-                        if (selectedCategory == category.slug) null else category.slug,
-                    )
+                    onSelectCategory(if (selectedSlug == slug) null else slug)
                 },
             )
         }
@@ -361,50 +299,204 @@ private fun CategoryMenu(
 }
 
 @Composable
-private fun CategoryChip(
-    label: String,
-    count: Int,
+private fun CategoryLogoButton(
+    slug: String,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = {
-            Text(
-                text = "$label $count",
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        leadingIcon = if (selected) {
-            {
-                Icon(
-                    imageVector = Icons.Outlined.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        } else {
-            null
-        },
-    )
+    val labelColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
+    Column(
+        modifier = Modifier
+            .width(78.dp)
+            .clickable(onClick = onClick)
+            .padding(vertical = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        CategoryLogo(slug = slug, selected = selected)
+        Text(
+            text = categoryLabel(slug),
+            style = MaterialTheme.typography.labelMedium,
+            color = labelColor,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
+        Box(
+            modifier = Modifier
+                .width(if (selected) 28.dp else 0.dp)
+                .height(2.dp)
+                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(1.dp)),
+        )
+    }
 }
 
 @Composable
-private fun SectionHeader(title: String, body: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+private fun CategoryLogo(slug: String, selected: Boolean) {
+    val ink = MaterialTheme.colorScheme.onBackground
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val accent = if (selected) MaterialTheme.colorScheme.primary else DondeGoCoral
+
+    Canvas(modifier = Modifier.size(58.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = w * 0.065f
+        fun p(x: Float, y: Float) = Offset(w * x, h * y)
+        fun s(width: Float, height: Float) = Size(w * width, h * height)
+
+        when (slug) {
+            "concierto" -> {
+                drawCircle(Color(0xFFFFC857), radius = w * 0.14f, center = p(0.32f, 0.74f))
+                drawCircle(Color(0xFFFFC857), radius = w * 0.14f, center = p(0.68f, 0.67f))
+                drawLine(accent, p(0.42f, 0.25f), p(0.42f, 0.73f), strokeWidth = stroke, cap = StrokeCap.Round)
+                drawLine(accent, p(0.78f, 0.18f), p(0.78f, 0.66f), strokeWidth = stroke, cap = StrokeCap.Round)
+                drawLine(accent, p(0.42f, 0.25f), p(0.78f, 0.18f), strokeWidth = stroke, cap = StrokeCap.Round)
+            }
+            "festival" -> {
+                drawLine(ink, p(0.18f, 0.76f), p(0.82f, 0.76f), strokeWidth = stroke, cap = StrokeCap.Round)
+                drawLine(ink, p(0.24f, 0.76f), p(0.38f, 0.43f), strokeWidth = stroke, cap = StrokeCap.Round)
+                drawLine(ink, p(0.76f, 0.76f), p(0.62f, 0.43f), strokeWidth = stroke, cap = StrokeCap.Round)
+                listOf(0.24f, 0.40f, 0.56f).forEachIndexed { index, x ->
+                    val color = listOf(Color(0xFFFFC857), accent, Color(0xFF3EB489))[index]
+                    val flag = Path().apply {
+                        moveTo(w * x, h * 0.25f)
+                        lineTo(w * (x + 0.14f), h * 0.33f)
+                        lineTo(w * x, h * 0.41f)
+                        close()
+                    }
+                    drawPath(flag, color)
+                }
+                drawLine(muted, p(0.18f, 0.25f), p(0.76f, 0.25f), strokeWidth = stroke * 0.58f, cap = StrokeCap.Round)
+            }
+            "exposicion" -> {
+                drawRoundRect(
+                    color = Color(0xFFFFD166),
+                    topLeft = p(0.20f, 0.20f),
+                    size = s(0.60f, 0.50f),
+                    cornerRadius = CornerRadius(w * 0.08f, w * 0.08f),
+                )
+                drawRoundRect(
+                    color = ink,
+                    topLeft = p(0.20f, 0.20f),
+                    size = s(0.60f, 0.50f),
+                    cornerRadius = CornerRadius(w * 0.08f, w * 0.08f),
+                    style = Stroke(width = stroke * 0.7f),
+                )
+                drawCircle(accent, radius = w * 0.07f, center = p(0.38f, 0.38f))
+                drawLine(Color(0xFF3EB489), p(0.30f, 0.62f), p(0.48f, 0.47f), strokeWidth = stroke * 0.75f, cap = StrokeCap.Round)
+                drawLine(Color(0xFF3EB489), p(0.48f, 0.47f), p(0.70f, 0.62f), strokeWidth = stroke * 0.75f, cap = StrokeCap.Round)
+            }
+            "charla" -> {
+                drawRoundRect(
+                    color = Color(0xFF6D5BD0),
+                    topLeft = p(0.18f, 0.22f),
+                    size = s(0.56f, 0.34f),
+                    cornerRadius = CornerRadius(w * 0.14f, w * 0.14f),
+                )
+                drawRoundRect(
+                    color = accent,
+                    topLeft = p(0.30f, 0.42f),
+                    size = s(0.54f, 0.33f),
+                    cornerRadius = CornerRadius(w * 0.14f, w * 0.14f),
+                )
+                drawCircle(Color.White.copy(alpha = 0.95f), radius = w * 0.035f, center = p(0.44f, 0.58f))
+                drawCircle(Color.White.copy(alpha = 0.95f), radius = w * 0.035f, center = p(0.57f, 0.58f))
+                drawCircle(Color.White.copy(alpha = 0.95f), radius = w * 0.035f, center = p(0.70f, 0.58f))
+            }
+            "obra-de-teatro", "comedia" -> {
+                drawOval(Color(0xFFFFD166), topLeft = p(0.16f, 0.23f), size = s(0.34f, 0.47f))
+                drawOval(accent, topLeft = p(0.48f, 0.18f), size = s(0.34f, 0.47f))
+                drawCircle(ink, radius = w * 0.025f, center = p(0.29f, 0.41f))
+                drawCircle(ink, radius = w * 0.025f, center = p(0.39f, 0.41f))
+                drawArc(ink, startAngle = 15f, sweepAngle = 150f, useCenter = false, topLeft = p(0.27f, 0.47f), size = s(0.15f, 0.13f), style = Stroke(width = stroke * 0.46f, cap = StrokeCap.Round))
+                drawCircle(Color.White, radius = w * 0.025f, center = p(0.61f, 0.36f))
+                drawCircle(Color.White, radius = w * 0.025f, center = p(0.72f, 0.36f))
+                drawArc(Color.White, startAngle = 205f, sweepAngle = 130f, useCenter = false, topLeft = p(0.58f, 0.49f), size = s(0.17f, 0.12f), style = Stroke(width = stroke * 0.46f, cap = StrokeCap.Round))
+            }
+            "fiesta-y-vida-nocturna" -> {
+                drawCircle(Color(0xFF6D5BD0), radius = w * 0.26f, center = p(0.46f, 0.42f))
+                drawLine(Color.White.copy(alpha = 0.85f), p(0.26f, 0.42f), p(0.66f, 0.42f), strokeWidth = stroke * 0.45f)
+                drawLine(Color.White.copy(alpha = 0.85f), p(0.46f, 0.17f), p(0.46f, 0.67f), strokeWidth = stroke * 0.45f)
+                drawLine(Color.White.copy(alpha = 0.55f), p(0.32f, 0.25f), p(0.60f, 0.59f), strokeWidth = stroke * 0.35f)
+                drawLine(Color.White.copy(alpha = 0.55f), p(0.60f, 0.25f), p(0.32f, 0.59f), strokeWidth = stroke * 0.35f)
+                drawCircle(accent, radius = w * 0.09f, center = p(0.72f, 0.70f))
+            }
+            "gastronomia" -> {
+                val slice = Path().apply {
+                    moveTo(w * 0.26f, h * 0.18f)
+                    lineTo(w * 0.78f, h * 0.34f)
+                    lineTo(w * 0.38f, h * 0.82f)
+                    close()
+                }
+                drawPath(slice, Color(0xFFFFC857))
+                drawLine(accent, p(0.26f, 0.18f), p(0.78f, 0.34f), strokeWidth = stroke * 1.6f, cap = StrokeCap.Round)
+                drawCircle(accent, radius = w * 0.045f, center = p(0.49f, 0.42f))
+                drawCircle(accent, radius = w * 0.045f, center = p(0.62f, 0.50f))
+                drawCircle(accent, radius = w * 0.045f, center = p(0.45f, 0.62f))
+            }
+            "curso-taller" -> {
+                rotate(-28f, pivot = p(0.50f, 0.50f)) {
+                    drawRoundRect(accent, topLeft = p(0.25f, 0.28f), size = s(0.50f, 0.16f), cornerRadius = CornerRadius(w * 0.08f, w * 0.08f))
+                    drawRoundRect(Color(0xFFFFD166), topLeft = p(0.25f, 0.44f), size = s(0.50f, 0.16f), cornerRadius = CornerRadius(w * 0.08f, w * 0.08f))
+                    drawRoundRect(ink, topLeft = p(0.37f, 0.28f), size = s(0.12f, 0.32f), cornerRadius = CornerRadius(w * 0.02f, w * 0.02f))
+                }
+            }
+            "salud-y-bienestar" -> {
+                drawOval(Color(0xFF3EB489), topLeft = p(0.24f, 0.32f), size = s(0.30f, 0.42f))
+                drawOval(Color(0xFF74D99F), topLeft = p(0.46f, 0.21f), size = s(0.30f, 0.42f))
+                drawLine(ink, p(0.36f, 0.72f), p(0.64f, 0.30f), strokeWidth = stroke * 0.55f, cap = StrokeCap.Round)
+            }
+            "deportes" -> {
+                drawCircle(Color.White, radius = w * 0.30f, center = p(0.50f, 0.50f))
+                drawCircle(ink, radius = w * 0.30f, center = p(0.50f, 0.50f), style = Stroke(width = stroke * 0.65f))
+                drawLine(accent, p(0.27f, 0.50f), p(0.73f, 0.50f), strokeWidth = stroke * 0.5f, cap = StrokeCap.Round)
+                drawLine(accent, p(0.50f, 0.22f), p(0.50f, 0.78f), strokeWidth = stroke * 0.5f, cap = StrokeCap.Round)
+                drawArc(accent, startAngle = 75f, sweepAngle = 210f, useCenter = false, topLeft = p(0.28f, 0.22f), size = s(0.44f, 0.56f), style = Stroke(width = stroke * 0.5f, cap = StrokeCap.Round))
+            }
+            "familia" -> {
+                drawCircle(accent, radius = w * 0.15f, center = p(0.33f, 0.34f))
+                drawCircle(Color(0xFFFFC857), radius = w * 0.16f, center = p(0.62f, 0.32f))
+                drawCircle(Color(0xFF3EB489), radius = w * 0.12f, center = p(0.50f, 0.58f))
+                drawLine(muted, p(0.33f, 0.49f), p(0.43f, 0.76f), strokeWidth = stroke * 0.45f, cap = StrokeCap.Round)
+                drawLine(muted, p(0.62f, 0.48f), p(0.54f, 0.76f), strokeWidth = stroke * 0.45f, cap = StrokeCap.Round)
+            }
+            "cine" -> {
+                drawRoundRect(ink, topLeft = p(0.18f, 0.29f), size = s(0.64f, 0.44f), cornerRadius = CornerRadius(w * 0.07f, w * 0.07f))
+                drawRoundRect(accent, topLeft = p(0.18f, 0.22f), size = s(0.64f, 0.18f), cornerRadius = CornerRadius(w * 0.05f, w * 0.05f))
+                repeat(3) { index ->
+                    val x = 0.27f + index * 0.18f
+                    drawLine(Color.White, p(x, 0.23f), p(x + 0.08f, 0.39f), strokeWidth = stroke * 0.45f, cap = StrokeCap.Round)
+                }
+                drawCircle(Color.White, radius = w * 0.055f, center = p(0.50f, 0.55f))
+            }
+            "tecnologia", "networking", "negocios" -> {
+                drawRoundRect(Color(0xFF3EB489), topLeft = p(0.27f, 0.27f), size = s(0.46f, 0.46f), cornerRadius = CornerRadius(w * 0.08f, w * 0.08f))
+                drawRoundRect(ink, topLeft = p(0.36f, 0.36f), size = s(0.28f, 0.28f), cornerRadius = CornerRadius(w * 0.04f, w * 0.04f), style = Stroke(width = stroke * 0.55f))
+                listOf(0.24f, 0.50f, 0.76f).forEach { x ->
+                    drawLine(accent, p(x, 0.18f), p(x, 0.27f), strokeWidth = stroke * 0.45f, cap = StrokeCap.Round)
+                    drawLine(accent, p(x, 0.73f), p(x, 0.82f), strokeWidth = stroke * 0.45f, cap = StrokeCap.Round)
+                }
+            }
+            else -> {
+                val star = Path().apply {
+                    val cx = w * 0.50f
+                    val cy = h * 0.46f
+                    val outer = w * 0.31f
+                    val inner = w * 0.14f
+                    repeat(10) { index ->
+                        val angle = Math.toRadians((index * 36 - 90).toDouble())
+                        val r = if (index % 2 == 0) outer else inner
+                        val x = cx + kotlin.math.cos(angle).toFloat() * r
+                        val y = cy + kotlin.math.sin(angle).toFloat() * r
+                        if (index == 0) moveTo(x, y) else lineTo(x, y)
+                    }
+                    close()
+                }
+                drawPath(star, accent)
+                drawCircle(Color.White.copy(alpha = 0.92f), radius = w * 0.07f, center = p(0.50f, 0.46f))
+            }
+        }
     }
 }
 
@@ -618,6 +710,36 @@ private fun placeholderBrush(seed: String): Brush {
     )
     val index = seed.fold(0) { acc, char -> (acc * 31 + char.code) and Int.MAX_VALUE } % palettes.size
     return Brush.linearGradient(palettes[index])
+}
+
+private fun visibleCategorySlugs(feed: HomeFeed, listing: List<EventSummary>): List<String> {
+    val fromCounts = feed.categories
+        .filter { it.count > 0 }
+        .map { it.slug }
+    val fromEvents = listing.flatMap { it.categories }
+
+    return (fromCounts + fromEvents)
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+        .distinct()
+        .take(12)
+}
+
+private fun uniquePrimaryCategoryFirst(events: List<EventSummary>): List<EventSummary> {
+    val firstByCategory = mutableListOf<EventSummary>()
+    val remaining = mutableListOf<EventSummary>()
+    val seen = linkedSetOf<String>()
+
+    events.forEach { event ->
+        val category = event.categories.firstOrNull()?.takeIf { it.isNotBlank() } ?: "otros"
+        if (seen.add(category)) {
+            firstByCategory += event
+        } else {
+            remaining += event
+        }
+    }
+
+    return firstByCategory + remaining
 }
 
 // --- State & ViewModel -------------------------------------------------------
