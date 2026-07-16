@@ -5,6 +5,29 @@ import { getCurrentUser } from '@/lib/auth';
 import { createEventSchema } from '@/lib/validations';
 import { dollarsToCents } from '@/lib/format';
 
+// Public projection: never expose organizer contact details (contactName /
+// contactEmail / contactPhone) or internal moderationNotes to unauthenticated
+// callers. Mirrors the field whitelist used by the /api/v1 event routes.
+const PUBLIC_EVENT_SELECT = {
+  id: true,
+  title: true,
+  shortDescription: true,
+  description: true,
+  category: true,
+  venue: true,
+  city: true,
+  address: true,
+  startsAt: true,
+  endsAt: true,
+  coverImage: true,
+  isFree: true,
+  isPublished: true,
+  status: true,
+  createdAt: true,
+  organizer: { select: { id: true, name: true } },
+  ticketTypes: true,
+} as const;
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const query = searchParams.get('query') ?? '';
@@ -45,7 +68,7 @@ export async function GET(req: NextRequest) {
 
   const events = await prisma.event.findMany({
     where,
-    include: { ticketTypes: true },
+    select: PUBLIC_EVENT_SELECT,
     orderBy: { startsAt: 'asc' },
   });
 

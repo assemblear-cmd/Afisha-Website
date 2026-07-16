@@ -31,18 +31,19 @@ test.describe('Event detail page', () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
-  test('"Get tickets" button is present (and initially disabled)', async ({ page }) => {
+  test('checkout button is present (and initially disabled)', async ({ page }) => {
     const events = new EventsPage(page);
     await events.goto();
     await events.openEvent(0);
 
-    // TicketSelector always renders the "Get tickets" button; disabled when qty=0
-    const btn = page.getByRole('button', { name: 'Get tickets' });
+    // TicketPurchase always renders the submit button; disabled when qty=0
+    const detail = new EventDetailPage(page);
+    const btn = detail.submitButton();
     await expect(btn).toBeVisible({ timeout: 10000 });
     await expect(btn).toBeDisabled();
   });
 
-  test('incrementing a ticket quantity enables the "Get tickets" button', async ({ page }) => {
+  test('incrementing a ticket quantity enables the checkout button', async ({ page }) => {
     const events = new EventsPage(page);
     await events.goto();
     await events.openEvent(0);
@@ -50,8 +51,7 @@ test.describe('Event detail page', () => {
     const detail = new EventDetailPage(page);
     await detail.selectFirstTicket(1);
 
-    const btn = page.getByRole('button', { name: 'Get tickets' });
-    await expect(btn).toBeEnabled({ timeout: 5000 });
+    await expect(detail.submitButton()).toBeEnabled({ timeout: 5000 });
   });
 
   test('event detail shows the "About this event" section', async ({ page }) => {

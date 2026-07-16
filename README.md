@@ -46,7 +46,7 @@
 | `/dashboard` | Organizer dashboard (event sales overview) |
 | `/dashboard/events/new` | Create‑event form (organizer only) |
 
-API (Next.js Route Handlers): `POST /api/auth/{register,login,logout}`, `GET /api/auth/me`, `GET/POST /api/events`, `GET /api/events/[id]`, `POST /api/orders`.
+API (Next.js Route Handlers): `POST /api/auth/{register,login,logout}`, `GET /api/auth/me`, `GET/POST /api/events`, `GET /api/events/[id]`, `POST /api/checkout` (Stripe-backed ticket checkout).
 
 ---
 
@@ -133,13 +133,12 @@ afisha-website/
 │   │   ├── orders/[id]/page.tsx      # Confirmation
 │   │   ├── login/ · register/        # Auth pages
 │   │   ├── dashboard/                # Organizer dashboard + create event
-│   │   └── api/                      # auth · events · orders route handlers
+│   │   └── api/                      # auth · events · checkout route handlers
 │   ├── components/
 │   │   ├── ui/        # Button, Input, Select, Field, Badge, Card, Container, …
 │   │   ├── layout/    # Header, Footer
-│   │   ├── events/    # EventCard, EventGrid, SearchBar, CategoryFilter, TicketSelector, CreateEventForm
-│   │   ├── auth/      # AuthForm
-│   │   └── checkout/  # CheckoutForm
+│   │   ├── events/    # EventCard, EventGrid, SearchBar, CategoryFilter, TicketPurchase
+│   │   └── auth/      # AuthForm
 │   ├── lib/           # prisma, auth, validations, format, categories
 │   └── types/         # shared TypeScript types
 ├── tests/
