@@ -2,8 +2,13 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword, signToken, setAuthCookie } from '@/lib/auth';
 import { registerSchema } from '@/lib/validations';
+import { clientIp, consumeRateLimit, tooManyRequests } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
+  // Mass-registration protection; budget shared with /api/v1/auth/register.
+  const limit = consumeRateLimit('register_ip', clientIp(req.headers));
+  if (!limit.ok) return tooManyRequests(limit);
+
   const body = await req.json();
   const result = registerSchema.safeParse(body);
 

@@ -2,12 +2,17 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword, signToken } from '@/lib/auth';
 import { registerSchema } from '@/lib/validations';
+import { clientIp, consumeRateLimit, tooManyRequests } from '@/lib/rate-limit';
 
 // Mobile registration: same rules as /api/auth/register (`role` is visitor
 // or organizer only — registerSchema never accepts admin), token in the body
 // instead of a cookie.
 
 export async function POST(req: Request) {
+  // Mass-registration protection; budget shared with /api/auth/register.
+  const limit = consumeRateLimit('register_ip', clientIp(req.headers));
+  if (!limit.ok) return tooManyRequests(limit);
+
   const body = await req.json().catch(() => null);
   const result = registerSchema.safeParse(body);
 

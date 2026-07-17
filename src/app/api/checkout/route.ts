@@ -5,6 +5,7 @@ import { ApiError, errorHandler } from '@/lib/api-error';
 import { ticketCheckoutSchema } from '@/lib/organizer/validation';
 import { issueTicketsForOrder } from '@/lib/payments/finalize';
 import { createStripeCheckoutSession, getAppUrl } from '@/lib/payments/stripe';
+import { clientIp, consumeRateLimit, tooManyRequests } from '@/lib/rate-limit';
 
 // New checkout for organizer-module events. Free orders (total 0) are issued
 // immediately without Stripe; paid orders create a PENDING order + Payment and
@@ -12,6 +13,11 @@ import { createStripeCheckoutSession, getAppUrl } from '@/lib/payments/stripe';
 // only becomes PAID when the webhook confirms it.
 
 export async function POST(req: NextRequest) {
+  // Guests can check out, so the key is the IP. Each request creates DB rows
+  // and (for paid orders) a Stripe session — keep the per-IP rate modest.
+  const limit = consumeRateLimit('checkout_ip', clientIp(req.headers));
+  if (!limit.ok) return tooManyRequests(limit);
+
   let body: unknown;
   try {
     body = await req.json();

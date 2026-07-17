@@ -139,7 +139,7 @@ afisha-website/
 │   │   ├── layout/    # Header, Footer
 │   │   ├── events/    # EventCard, EventGrid, SearchBar, CategoryFilter, TicketPurchase
 │   │   └── auth/      # AuthForm
-│   ├── lib/           # prisma, auth, validations, format, categories
+│   ├── lib/           # prisma, auth, validations, rate-limit, format, categories
 │   └── types/         # shared TypeScript types
 ├── tests/
 │   ├── unit/          # Vitest: format + validation (card/Luhn/zod)

@@ -22,5 +22,8 @@ export default defineConfig({
     url: 'http://localhost:3100',
     reuseExistingServer: true,
     timeout: 120000,
+    // All e2e traffic comes from one IP, so per-IP API limits would make the
+    // suite order-dependent. Rate limiting has its own unit tests.
+    env: { RATE_LIMIT_DISABLED: '1' },
   },
 });

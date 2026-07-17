@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
 import { hashPassword, signToken } from '@/lib/auth';
+import { clientIp, consumeRateLimit, tooManyRequests } from '@/lib/rate-limit';
 
 // Mobile "Sign in with Google": the app sends the Google ID token it obtained
 // on-device; the server verifies it against Google's JWKS (signature, issuer,
@@ -28,6 +29,10 @@ function allowedAudiences(): string[] {
 }
 
 export async function POST(req: Request) {
+  // Throttled before the JWKS verification and DB work.
+  const limit = consumeRateLimit('google_ip', clientIp(req.headers));
+  if (!limit.ok) return tooManyRequests(limit);
+
   const audiences = allowedAudiences();
   if (audiences.length === 0) {
     return NextResponse.json(

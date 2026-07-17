@@ -7,6 +7,7 @@ import { promotionCheckoutSchema } from '@/lib/organizer/validation';
 import { quoteTilePlacement } from '@/lib/promotion/pricing';
 import { tileConflictExists } from '@/lib/promotion/availability';
 import { createStripeCheckoutSession, getAppUrl, type CheckoutLineItem } from '@/lib/payments/stripe';
+import { consumeRateLimit, tooManyRequests } from '@/lib/rate-limit';
 
 // One promotion order can combine a homepage tile placement and promo
 // services (Instagram post/story, Telegram repost, scanner add-on) in a
@@ -22,6 +23,10 @@ function assertHourAligned(date: Date) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireOrganizer();
+
+    // Each request can create promo orders, placements and a Stripe session.
+    const limit = consumeRateLimit('promo_checkout_user', user.id);
+    if (!limit.ok) return tooManyRequests(limit);
 
     const parsed = promotionCheckoutSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {

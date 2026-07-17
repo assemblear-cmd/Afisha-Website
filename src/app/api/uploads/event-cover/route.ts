@@ -4,6 +4,7 @@ import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { EVENT_COVER_UPLOAD_PREFIX } from '@/lib/cover-image';
+import { consumeRateLimit, tooManyRequests } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -22,6 +23,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
   }
   // Any logged-in user can upload a cover for an event they are creating.
+
+  // Each accepted upload writes up to 5 MB to disk — cap the rate per user.
+  const limit = consumeRateLimit('upload_user', user.id);
+  if (!limit.ok) return tooManyRequests(limit);
 
   let formData: FormData;
   try {
